@@ -1,0 +1,9 @@
+D:\sql Aplicaciones\Gestion profesoral\GestionProfesoral\api_gestion\obj\Debug\net8.0\ApiGestion.csproj.AssemblyReference.cache
+D:\sql Aplicaciones\Gestion profesoral\GestionProfesoral\api_gestion\obj\Debug\net8.0\rpswa.dswa.cache.json
+D:\sql Aplicaciones\Gestion profesoral\GestionProfesoral\api_gestion\obj\Debug\net8.0\ApiGestion.GeneratedMSBuildEditorConfig.editorconfig
+D:\sql Aplicaciones\Gestion profesoral\GestionProfesoral\api_gestion\obj\Debug\net8.0\ApiGestion.AssemblyInfoInputs.cache
+D:\sql Aplicaciones\Gestion profesoral\GestionProfesoral\api_gestion\obj\Debug\net8.0\ApiGestion.AssemblyInfo.cs
+D:\sql Aplicaciones\Gestion profesoral\GestionProfesoral\api_gestion\obj\Debug\net8.0\ApiGestion.csproj.CoreCompileInputs.cache
+D:\sql Aplicaciones\Gestion profesoral\GestionProfesoral\api_gestion\obj\Debug\net8.0\ApiGestion.MvcApplicationPartsAssemblyInfo.cs
+D:\sql Aplicaciones\Gestion profesoral\GestionProfesoral\api_gestion\obj\Debug\net8.0\ApiGestion.MvcApplicationPartsAssemblyInfo.cache
+D:\sql Aplicaciones\Gestion profesoral\GestionProfesoral\api_gestion\obj\Debug\net8.0\ApiGestion.sourcelink.json
