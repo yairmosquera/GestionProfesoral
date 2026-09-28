@@ -1,0 +1,389 @@
+﻿@page "/redes"
+@rendermode InteractiveServer
+@using FrontGestion.Servicios
+@inject ServicioRed ServicioRed
+
+<PageTitle>Redes</PageTitle>
+
+<h1>Gestión de Redes</h1>
+
+@if (!string.IsNullOrWhiteSpace(mensaje))
+{
+    <div class="alert @claseMensaje">
+        @mensaje
+    </div>
+}
+
+<div class="card mb-4">
+    <div class="card-body">
+
+        <h4>
+            @(editando ? "Editar red" : "Registrar red")
+        </h4>
+
+        <div class="row">
+
+            <div class="col-md-2 mb-3">
+                <label class="form-label">ID</label>
+
+                <InputNumber class="form-control" @bind-Value="formulario.Idr" disabled="@editando" />
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Nombre</label>
+
+                <InputText class="form-control" @bind-Value="formulario.Nombre" />
+            </div>
+
+            <div class="col-md-3 mb-3">
+                <label class="form-label">URL</label>
+
+                <InputText class="form-control" @bind-Value="formulario.Url" />
+            </div>
+
+            <div class="col-md-3 mb-3">
+                <label class="form-label">País</label>
+
+                <InputText class="form-control" @bind-Value="formulario.Pais" />
+            </div>
+
+        </div>
+
+        <button class="btn btn-primary me-2" @onclick="Guardar">
+
+            @(editando ? "Actualizar" : "Guardar")
+
+        </button>
+
+        @if (editando)
+        {
+            <button class="btn btn-secondary" @onclick="Cancelar">
+
+                Cancelar
+
+            </button>
+        }
+
+    </div>
+</div>
+
+<h4>Redes registradas</h4>
+
+@if (cargando)
+{
+    <p>Cargando redes...</p>
+}
+else if (redes.Count == 0)
+{
+    <div class="alert alert-info">
+        No hay redes registradas.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+
+        <table class="table table-striped table-bordered">
+
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>URL</th>
+                    <th>País</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                @foreach (var red in redes)
+                {
+                    <tr>
+
+                        <td>@red.Idr</td>
+
+                        <td>@red.Nombre</td>
+
+                        <td>
+                            <a href="@red.Url" target="_blank" rel="noopener noreferrer">
+
+                                @red.Url
+
+                            </a>
+                        </td>
+
+                        <td>@red.Pais</td>
+
+                        <td>
+
+                            <button class="btn btn-sm btn-warning me-2" @onclick="() => Editar(red)">
+
+                                Editar
+
+                            </button>
+
+                            <button class="btn btn-sm btn-danger" @onclick="() => Retirar(red.Idr)">
+
+                                Retirar
+
+                            </button>
+
+                        </td>
+
+                    </tr>
+                }
+
+            </tbody>
+
+        </table>
+
+    </div>
+}
+
+@code {
+
+    private List<RedDto> redes = new();
+
+    private RedFormulario formulario = new();
+
+    private bool cargando = true;
+    private bool editando = false;
+
+    private int idEdicion;
+
+    private string mensaje = string.Empty;
+    private string claseMensaje = "alert-success";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarRedes();
+    }
+
+    private async Task CargarRedes()
+    {
+        try
+        {
+            cargando = true;
+
+            redes = await ServicioRed.ObtenerTodosAsync();
+        }
+        catch
+        {
+            MostrarError(
+                "No fue posible cargar las redes."
+            );
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void Editar(RedDto red)
+    {
+        formulario = new RedFormulario
+        {
+            Idr = red.Idr,
+            Nombre = red.Nombre,
+            Url = red.Url,
+            Pais = red.Pais
+        };
+
+        idEdicion = red.Idr;
+
+        editando = true;
+
+        LimpiarMensaje();
+    }
+
+    private async Task Guardar()
+    {
+        LimpiarMensaje();
+
+        if (string.IsNullOrWhiteSpace(formulario.Nombre))
+        {
+            MostrarError(
+                "El nombre es obligatorio."
+            );
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(formulario.Url))
+        {
+            MostrarError(
+                "La URL es obligatoria."
+            );
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(formulario.Pais))
+        {
+            MostrarError(
+                "El país es obligatorio."
+            );
+
+            return;
+        }
+
+        if (!editando && formulario.Idr <= 0)
+        {
+            MostrarError(
+                "El ID debe ser mayor que cero."
+            );
+
+            return;
+        }
+
+        if (editando)
+        {
+            var peticion = new RedActualizarDto
+            {
+                Nombre = formulario.Nombre,
+                Url = formulario.Url,
+                Pais = formulario.Pais
+            };
+
+            var resultado =
+                await ServicioRed.ActualizarAsync(
+                    idEdicion,
+                    peticion
+                );
+
+            if (!resultado.Ok)
+            {
+                MostrarErrores(
+                    resultado.Errores
+                );
+
+                return;
+            }
+
+            MostrarExito(
+                "Red actualizada correctamente."
+            );
+        }
+        else
+        {
+            var peticion = new RedCrearDto
+            {
+                Idr = formulario.Idr,
+                Nombre = formulario.Nombre,
+                Url = formulario.Url,
+                Pais = formulario.Pais
+            };
+
+            var resultado =
+                await ServicioRed.CrearAsync(
+                    peticion
+                );
+
+            if (!resultado.Ok)
+            {
+                MostrarErrores(
+                    resultado.Errores
+                );
+
+                return;
+            }
+
+            MostrarExito(
+                "Red registrada correctamente."
+            );
+        }
+
+        LimpiarFormulario();
+
+        await CargarRedes();
+    }
+
+    private async Task Retirar(int id)
+    {
+        LimpiarMensaje();
+
+        var resultado =
+            await ServicioRed.EliminarAsync(id);
+
+        if (!resultado.Ok)
+        {
+            MostrarErrores(
+                resultado.Errores
+            );
+
+            return;
+        }
+
+        MostrarExito(
+            "Red retirada correctamente."
+        );
+
+        if (editando && idEdicion == id)
+        {
+            LimpiarFormulario();
+        }
+
+        await CargarRedes();
+    }
+
+    private void Cancelar()
+    {
+        LimpiarFormulario();
+        LimpiarMensaje();
+    }
+
+    private void LimpiarFormulario()
+    {
+        formulario = new RedFormulario();
+
+        editando = false;
+        idEdicion = 0;
+    }
+
+    private void MostrarExito(string texto)
+    {
+        mensaje = texto;
+
+        claseMensaje =
+            "alert-success";
+    }
+
+    private void MostrarError(string texto)
+    {
+        mensaje = texto;
+
+        claseMensaje =
+            "alert-danger";
+    }
+
+    private void MostrarErrores(
+        List<string> errores)
+    {
+        mensaje = errores.Count > 0
+            ? string.Join(" ", errores)
+            : "Ocurrió un error.";
+
+        claseMensaje =
+            "alert-danger";
+    }
+
+    private void LimpiarMensaje()
+    {
+        mensaje = string.Empty;
+    }
+
+    private class RedFormulario
+    {
+        public int Idr { get; set; }
+
+        public string Nombre { get; set; }
+            = string.Empty;
+
+        public string Url { get; set; }
+            = string.Empty;
+
+        public string Pais { get; set; }
+            = string.Empty;
+    }
+}

@@ -14,7 +14,7 @@ var dbConnection = Environment.GetEnvironmentVariable("DB_CONNECTION");
 if (string.IsNullOrWhiteSpace(dbConnection))
 {
     throw new InvalidOperationException(
-        "No se encontró la variable de entorno DB_CONNECTION."
+      "No se encontró la variable de entorno DB_CONNECTION."
     );
 }
 
@@ -24,10 +24,16 @@ builder.Configuration["ConnectionStrings:DefaultConnection"] = dbConnection;
 // Repositorios
 builder.Services.AddScoped<IRepositorioPrograma, RepositorioPrograma>();
 builder.Services.AddScoped<IRepositorioAreaConocimiento, RepositorioAreaConocimiento>();
+builder.Services.AddScoped<IRepositorioRed, RepositorioRed>();
+builder.Services.AddScoped<IRepositorioLineaInvestigacion, RepositorioLineaInvestigacion>();
+builder.Services.AddScoped<IRepositorioTerminoClave, RepositorioTerminoClave>();
 
 // Servicios
 builder.Services.AddScoped<IServicioPrograma, ServicioPrograma>();
 builder.Services.AddScoped<IServicioAreaConocimiento, ServicioAreaConocimiento>();
+builder.Services.AddScoped<IServicioRed, ServicioRed>();
+builder.Services.AddScoped<IServicioLineaInvestigacion, ServicioLineaInvestigacion>();
+builder.Services.AddScoped<IServicioTerminoClave, ServicioTerminoClave>();
 
 var app = builder.Build();
 

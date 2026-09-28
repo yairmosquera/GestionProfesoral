@@ -1,0 +1,393 @@
+@page "/terminos-clave"
+@rendermode InteractiveServer
+@using FrontGestion.Servicios
+@inject ServicioTerminoClave ServicioTerminoClave
+
+<PageTitle>Términos Clave</PageTitle>
+
+<h1>Gestión de Términos Clave</h1>
+
+@if (!string.IsNullOrWhiteSpace(mensaje))
+{
+    <div class="alert @claseMensaje">
+        @mensaje
+    </div>
+}
+
+<div class="card mb-4">
+    <div class="card-body">
+
+        <h4>
+            @(editando
+                ? "Editar término clave"
+                : "Registrar término clave")
+        </h4>
+
+        <div class="row">
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label">
+                    Término
+                </label>
+
+                @if (editando)
+                {
+                    <input class="form-control" value="@formulario.Termino" disabled />
+                }
+                else
+                {
+                    <InputText class="form-control" @bind-Value="formulario.Termino" />
+                }
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label">
+                    Término en inglés
+                </label>
+
+                <InputText class="form-control" @bind-Value="formulario.TerminoIngles" />
+            </div>
+
+        </div>
+
+        <button class="btn btn-primary me-2" @onclick="Guardar">
+
+            @(editando ? "Actualizar" : "Guardar")
+
+        </button>
+
+        @if (editando)
+        {
+            <button class="btn btn-secondary" @onclick="Cancelar">
+
+                Cancelar
+
+            </button>
+        }
+
+    </div>
+</div>
+
+<h4>Términos clave registrados</h4>
+
+@if (cargando)
+{
+    <p>Cargando términos clave...</p>
+}
+else if (terminos.Count == 0)
+{
+    <div class="alert alert-info">
+        No hay términos clave registrados.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+
+        <table class="table table-striped table-bordered">
+
+            <thead>
+                <tr>
+                    <th>Término</th>
+                    <th>Término en inglés</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                @foreach (var termino in terminos)
+                {
+                    <tr>
+
+                        <td>
+                            @termino.Termino
+                        </td>
+
+                        <td>
+                            @(string.IsNullOrWhiteSpace(
+                                termino.TerminoIngles)
+                                ? "-"
+                                : termino.TerminoIngles)
+                        </td>
+
+                        <td>
+                            <button class="btn btn-sm btn-warning me-2" @onclick="() => Editar(termino)">
+
+                                Editar
+
+                            </button>
+
+                            <button class="btn btn-sm btn-danger" @onclick="() => Retirar(termino.Termino)">
+
+                                Retirar
+
+                            </button>
+                        </td>
+
+                    </tr>
+                }
+
+            </tbody>
+
+        </table>
+
+    </div>
+}
+
+@code {
+
+    private List<TerminoClaveDto> terminos = new();
+
+    private TerminoFormulario formulario = new();
+
+    private bool cargando = true;
+
+    private bool editando = false;
+
+    private string terminoEdicion = string.Empty;
+
+    private string mensaje = string.Empty;
+
+    private string claseMensaje = "alert-success";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarTerminos();
+    }
+
+    private async Task CargarTerminos()
+    {
+        try
+        {
+            cargando = true;
+
+            terminos =
+                await ServicioTerminoClave
+                    .ObtenerTodosAsync();
+        }
+        catch
+        {
+            MostrarError(
+                "No fue posible cargar los términos clave."
+            );
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void Editar(
+        TerminoClaveDto termino)
+    {
+        formulario = new TerminoFormulario
+        {
+            Termino = termino.Termino,
+            TerminoIngles = termino.TerminoIngles
+        };
+
+        terminoEdicion = termino.Termino;
+
+        editando = true;
+
+        LimpiarMensaje();
+    }
+
+    private async Task Guardar()
+    {
+        LimpiarMensaje();
+
+        if (!editando)
+        {
+            if (string.IsNullOrWhiteSpace(
+                formulario.Termino))
+            {
+                MostrarError(
+                    "El término es obligatorio."
+                );
+
+                return;
+            }
+
+            if (formulario.Termino.Length > 30)
+            {
+                MostrarError(
+                    "El término no puede superar los 30 caracteres."
+                );
+
+                return;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(
+                formulario.TerminoIngles)
+            && formulario.TerminoIngles.Length > 30)
+        {
+            MostrarError(
+                "El término en inglés no puede superar los 30 caracteres."
+            );
+
+            return;
+        }
+
+        if (editando)
+        {
+            var peticion =
+                new TerminoClaveActualizarDto
+                {
+                    TerminoIngles =
+                        string.IsNullOrWhiteSpace(
+                            formulario.TerminoIngles)
+                            ? null
+                            : formulario.TerminoIngles
+                };
+
+            var resultado =
+                await ServicioTerminoClave
+                    .ActualizarAsync(
+                        terminoEdicion,
+                        peticion
+                    );
+
+            if (!resultado.Ok)
+            {
+                MostrarErrores(
+                    resultado.Errores
+                );
+
+                return;
+            }
+
+            MostrarExito(
+                "Término clave actualizado correctamente."
+            );
+        }
+        else
+        {
+            var peticion =
+                new TerminoClaveCrearDto
+                {
+                    Termino =
+                        formulario.Termino,
+
+                    TerminoIngles =
+                        string.IsNullOrWhiteSpace(
+                            formulario.TerminoIngles)
+                            ? null
+                            : formulario.TerminoIngles
+                };
+
+            var resultado =
+                await ServicioTerminoClave
+                    .CrearAsync(peticion);
+
+            if (!resultado.Ok)
+            {
+                MostrarErrores(
+                    resultado.Errores
+                );
+
+                return;
+            }
+
+            MostrarExito(
+                "Término clave registrado correctamente."
+            );
+        }
+
+        LimpiarFormulario();
+
+        await CargarTerminos();
+    }
+
+    private async Task Retirar(
+        string termino)
+    {
+        LimpiarMensaje();
+
+        var resultado =
+            await ServicioTerminoClave
+                .EliminarAsync(termino);
+
+        if (!resultado.Ok)
+        {
+            MostrarErrores(
+                resultado.Errores
+            );
+
+            return;
+        }
+
+        MostrarExito(
+            "Término clave retirado correctamente."
+        );
+
+        if (editando &&
+            terminoEdicion == termino)
+        {
+            LimpiarFormulario();
+        }
+
+        await CargarTerminos();
+    }
+
+    private void Cancelar()
+    {
+        LimpiarFormulario();
+        LimpiarMensaje();
+    }
+
+    private void LimpiarFormulario()
+    {
+        formulario =
+            new TerminoFormulario();
+
+        editando = false;
+
+        terminoEdicion =
+            string.Empty;
+    }
+
+    private void MostrarExito(
+        string texto)
+    {
+        mensaje = texto;
+
+        claseMensaje =
+            "alert-success";
+    }
+
+    private void MostrarError(
+        string texto)
+    {
+        mensaje = texto;
+
+        claseMensaje =
+            "alert-danger";
+    }
+
+    private void MostrarErrores(
+        List<string> errores)
+    {
+        mensaje = errores.Count > 0
+            ? string.Join(" ", errores)
+            : "Ocurrió un error.";
+
+        claseMensaje =
+            "alert-danger";
+    }
+
+    private void LimpiarMensaje()
+    {
+        mensaje = string.Empty;
+    }
+
+    private class TerminoFormulario
+    {
+        public string Termino { get; set; }
+            = string.Empty;
+
+        public string? TerminoIngles { get; set; }
+    }
+}
