@@ -2,39 +2,158 @@
 
 <PageTitle>Inicio</PageTitle>
 
-<div class="inicio">
+<div class="home-container">
+
     <h1>Sistema de Gestión Profesoral</h1>
 
-    <p>
-        Plataforma para la administración de la información
-        del sistema de Gestión Profesoral.
+    <p class="descripcion">
+        Plataforma para la administración de la información del sistema de Gestión Profesoral.
     </p>
 
-    <div class="inicio-opciones">
+    <div class="modulos-grid">
 
-        <div class="inicio-card">
+        <!-- PROGRAMAS -->
+        <div class="modulo-card">
             <h3>Programas</h3>
 
             <p>
                 Consulta, registra y administra los programas académicos.
             </p>
 
-            <a href="/programas" class="btn btn-primary">
+            <a href="/programas" class="btn-modulo">
                 Gestionar programas
             </a>
         </div>
 
-        <div class="inicio-card">
+        <!-- ÁREAS DE CONOCIMIENTO -->
+        <div class="modulo-card">
             <h3>Áreas de Conocimiento</h3>
 
             <p>
                 Consulta, registra y administra las áreas de conocimiento.
             </p>
 
-            <a href="/areas-conocimiento" class="btn btn-primary">
+            <a href="/areas-conocimiento" class="btn-modulo">
                 Gestionar áreas
             </a>
         </div>
 
+        <!-- REDES -->
+        <div class="modulo-card">
+            <h3>Redes</h3>
+
+            <p>
+                Consulta, registra y administra las redes académicas y de investigación.
+            </p>
+
+            <a href="/redes" class="btn-modulo">
+                Gestionar redes
+            </a>
+        </div>
+
+        <!-- LÍNEAS DE INVESTIGACIÓN -->
+        <div class="modulo-card">
+            <h3>Líneas de Investigación</h3>
+
+            <p>
+                Consulta, registra y administra las líneas de investigación.
+            </p>
+
+            <a href="/lineas-investigacion" class="btn-modulo">
+                Gestionar líneas
+            </a>
+        </div>
+
+        <!-- TÉRMINOS CLAVE -->
+        <div class="modulo-card">
+            <h3>Términos Clave</h3>
+
+            <p>
+                Consulta, registra y administra los términos clave del sistema.
+            </p>
+
+            <a href="/terminos-clave" class="btn-modulo">
+                Gestionar términos
+            </a>
+        </div>
+
     </div>
+
 </div>
+
+<style>
+    .home-container {
+        padding: 10px 0;
+    }
+
+    .home-container h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 20px;
+    }
+
+    .descripcion {
+        font-size: 1.05rem;
+        color: #666;
+        margin-bottom: 28px;
+    }
+
+    .modulos-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .modulo-card {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 25px;
+        min-height: 190px;
+
+        display: flex;
+        flex-direction: column;
+
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
+    }
+
+    .modulo-card h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 15px;
+    }
+
+    .modulo-card p {
+        color: #666;
+        flex-grow: 1;
+        margin-bottom: 20px;
+    }
+
+    .btn-modulo {
+        display: inline-block;
+        width: fit-content;
+
+        background: #2563eb;
+        color: white;
+
+        padding: 10px 16px;
+
+        border-radius: 6px;
+
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .btn-modulo:hover {
+        background: #1d4ed8;
+        color: white;
+    }
+
+    @@media (max-width: 900px) {
+
+        .modulos-grid {
+            grid-template-columns: 1fr;
+        }
+
+    }
+</style>
