@@ -1,0 +1,253 @@
+@page "/areas-conocimiento"
+@rendermode InteractiveServer
+@using FrontGestion.Servicios
+@inject ServicioAreaConocimiento Servicio
+
+<PageTitle>Áreas de Conocimiento</PageTitle>
+
+<h1>Gestión de Áreas de Conocimiento</h1>
+
+@if (!string.IsNullOrWhiteSpace(mensaje))
+{
+    <div class="alert @(esError ? "alert-danger" : "alert-success")">
+        @mensaje
+    </div>
+}
+
+<div class="card mb-4">
+    <div class="card-body">
+
+        <h4>@(editando ? "Editar área de conocimiento" : "Registrar área de conocimiento")</h4>
+
+        <div class="row">
+
+            <div class="col-md-3 mb-3">
+                <label class="form-label">ID</label>
+                <input class="form-control" maxlength="6" @bind="formulario.Id" disabled="@editando" />
+            </div>
+
+            <div class="col-md-5 mb-3">
+                <label class="form-label">Gran área</label>
+                <input class="form-control" @bind="formulario.GranArea" />
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Área</label>
+                <input class="form-control" @bind="formulario.Area" />
+            </div>
+
+            <div class="col-md-12 mb-3">
+                <label class="form-label">Disciplina</label>
+                <input class="form-control" @bind="formulario.Disciplina" />
+            </div>
+
+        </div>
+
+        <button class="btn btn-primary me-2" @onclick="Guardar">
+            @(editando ? "Actualizar" : "Guardar")
+        </button>
+
+        @if (editando)
+        {
+            <button class="btn btn-secondary" @onclick="Cancelar">
+                Cancelar
+            </button>
+        }
+
+    </div>
+</div>
+
+<h4>Áreas de conocimiento registradas</h4>
+
+@if (cargando)
+{
+    <p>Cargando áreas de conocimiento...</p>
+}
+else if (areas.Count == 0)
+{
+    <div class="alert alert-info">
+        No hay áreas de conocimiento registradas.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+
+        <table class="table table-striped table-bordered">
+
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Gran área</th>
+                    <th>Área</th>
+                    <th>Disciplina</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                @foreach (var area in areas)
+                {
+                    <tr>
+                        <td>@area.Id</td>
+                        <td>@area.GranArea</td>
+                        <td>@area.Area</td>
+                        <td>@area.Disciplina</td>
+
+                        <td>
+                            <button class="btn btn-sm btn-warning me-2" @onclick="() => Editar(area)">
+                                Editar
+                            </button>
+
+                            <button class="btn btn-sm btn-danger" @onclick="() => Eliminar(area.Id)">
+                                Retirar
+                            </button>
+                        </td>
+                    </tr>
+                }
+
+            </tbody>
+
+        </table>
+
+    </div>
+}
+
+@code {
+
+    private List<AreaConocimiento> areas = new();
+
+    private AreaConocimiento formulario = new();
+
+    private bool cargando = true;
+    private bool editando = false;
+    private bool esError = false;
+
+    private string mensaje = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarAreas();
+    }
+
+    private async Task CargarAreas()
+    {
+        cargando = true;
+
+        var resultado = await Servicio.Listar();
+
+        if (resultado.Ok)
+        {
+            areas = resultado.Datos ?? new();
+        }
+        else
+        {
+            MostrarError(resultado.Errores);
+        }
+
+        cargando = false;
+    }
+
+    private async Task Guardar()
+    {
+        mensaje = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(formulario.Id) ||
+            string.IsNullOrWhiteSpace(formulario.GranArea) ||
+            string.IsNullOrWhiteSpace(formulario.Area) ||
+            string.IsNullOrWhiteSpace(formulario.Disciplina))
+        {
+            MostrarError(new List<string>
+            {
+                "ID, gran área, área y disciplina son obligatorios."
+            });
+
+            return;
+        }
+
+        Resultado<bool> resultado;
+
+        if (editando)
+        {
+            resultado = await Servicio.Reemplazar(
+                formulario.Id,
+                formulario
+            );
+        }
+        else
+        {
+            resultado = await Servicio.Crear(formulario);
+        }
+
+        if (!resultado.Ok)
+        {
+            MostrarError(resultado.Errores);
+            return;
+        }
+
+        mensaje = editando
+            ? "Área de conocimiento actualizada correctamente."
+            : "Área de conocimiento registrada correctamente.";
+
+        esError = false;
+
+        LimpiarFormulario();
+
+        await CargarAreas();
+    }
+
+    private void Editar(AreaConocimiento area)
+    {
+        formulario = new AreaConocimiento
+        {
+            Id = area.Id,
+            GranArea = area.GranArea,
+            Area = area.Area,
+            Disciplina = area.Disciplina,
+            Activo = area.Activo
+        };
+
+        editando = true;
+        mensaje = string.Empty;
+    }
+
+    private async Task Eliminar(string id)
+    {
+        var resultado = await Servicio.Eliminar(id);
+
+        if (!resultado.Ok)
+        {
+            MostrarError(resultado.Errores);
+            return;
+        }
+
+        mensaje = "Área de conocimiento retirada correctamente.";
+        esError = false;
+
+        if (editando && formulario.Id == id)
+        {
+            LimpiarFormulario();
+        }
+
+        await CargarAreas();
+    }
+
+    private void Cancelar()
+    {
+        LimpiarFormulario();
+        mensaje = string.Empty;
+    }
+
+    private void LimpiarFormulario()
+    {
+        formulario = new AreaConocimiento();
+        editando = false;
+    }
+
+    private void MostrarError(List<string> errores)
+    {
+        mensaje = string.Join(" ", errores);
+        esError = true;
+    }
+}

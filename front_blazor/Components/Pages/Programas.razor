@@ -1,0 +1,285 @@
+@page "/programas"
+@rendermode InteractiveServer
+@using FrontGestion.Servicios
+@inject ServicioPrograma Servicio
+
+<PageTitle>Programas</PageTitle>
+
+<h1>Gestión de Programas</h1>
+
+@if (!string.IsNullOrWhiteSpace(mensaje))
+{
+    <div class="alert @(esError ? "alert-danger" : "alert-success")">
+        @mensaje
+    </div>
+}
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h4>@(editando ? "Editar programa" : "Registrar programa")</h4>
+
+        <div class="row">
+            <div class="col-md-2 mb-3">
+                <label class="form-label">ID</label>
+                <input type="number" class="form-control" @bind="formulario.Id" disabled="@editando" />
+            </div>
+
+            <div class="col-md-5 mb-3">
+                <label class="form-label">Nombre</label>
+                <input class="form-control" @bind="formulario.Nombre" />
+            </div>
+
+            <div class="col-md-5 mb-3">
+                <label class="form-label">Tipo</label>
+                <input class="form-control" @bind="formulario.Tipo" />
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Nivel</label>
+                <input class="form-control" @bind="formulario.Nivel" />
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Fecha de creación</label>
+                <input class="form-control" @bind="formulario.FechaCreacion" />
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Fecha de cierre</label>
+                <input class="form-control" @bind="formulario.FechaCierre" />
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Número de cohortes</label>
+                <input class="form-control" @bind="formulario.NumeroCohortes" />
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Cantidad de graduados</label>
+                <input class="form-control" @bind="formulario.CantGraduados" />
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Fecha de actualización</label>
+                <input class="form-control" @bind="formulario.FechaActualizacion" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Ciudad</label>
+                <input class="form-control" @bind="formulario.Ciudad" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Facultad</label>
+                <input type="number" class="form-control" @bind="formulario.Facultad" />
+            </div>
+        </div>
+
+        <button class="btn btn-primary me-2" @onclick="Guardar">
+            @(editando ? "Actualizar" : "Guardar")
+        </button>
+
+        @if (editando)
+        {
+            <button class="btn btn-secondary" @onclick="Cancelar">
+                Cancelar
+            </button>
+        }
+    </div>
+</div>
+
+<h4>Programas registrados</h4>
+
+@if (cargando)
+{
+    <p>Cargando programas...</p>
+}
+else if (programas.Count == 0)
+{
+    <div class="alert alert-info">
+        No hay programas registrados.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Tipo</th>
+                    <th>Nivel</th>
+                    <th>Ciudad</th>
+                    <th>Facultad</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var programa in programas)
+                {
+                    <tr>
+                        <td>@programa.Id</td>
+                        <td>@programa.Nombre</td>
+                        <td>@programa.Tipo</td>
+                        <td>@programa.Nivel</td>
+                        <td>@programa.Ciudad</td>
+                        <td>@programa.Facultad</td>
+                        <td>
+                            <button class="btn btn-sm btn-warning me-2" @onclick="() => Editar(programa)">
+                                Editar
+                            </button>
+
+                            <button class="btn btn-sm btn-danger" @onclick="() => Eliminar(programa.Id)">
+                                Retirar
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<Programa> programas = new();
+    private Programa formulario = new();
+
+    private bool cargando = true;
+    private bool editando = false;
+    private bool esError = false;
+
+    private string mensaje = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarProgramas();
+    }
+
+    private async Task CargarProgramas()
+    {
+        cargando = true;
+
+        var resultado = await Servicio.Listar();
+
+        if (resultado.Ok)
+        {
+            programas = resultado.Datos ?? new();
+        }
+        else
+        {
+            MostrarError(resultado.Errores);
+        }
+
+        cargando = false;
+    }
+
+    private async Task Guardar()
+    {
+        mensaje = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(formulario.Nombre) ||
+            string.IsNullOrWhiteSpace(formulario.Tipo) ||
+            string.IsNullOrWhiteSpace(formulario.Nivel))
+        {
+            MostrarError(new List<string>
+            {
+                "Nombre, tipo y nivel son obligatorios."
+            });
+
+            return;
+        }
+
+        Resultado<bool> resultado;
+
+        if (editando)
+        {
+            resultado = await Servicio.Reemplazar(
+                formulario.Id,
+                formulario
+            );
+        }
+        else
+        {
+            resultado = await Servicio.Crear(formulario);
+        }
+
+        if (!resultado.Ok)
+        {
+            MostrarError(resultado.Errores);
+            return;
+        }
+
+        mensaje = editando
+            ? "Programa actualizado correctamente."
+            : "Programa registrado correctamente.";
+
+        esError = false;
+
+        LimpiarFormulario();
+
+        await CargarProgramas();
+    }
+
+    private void Editar(Programa programa)
+    {
+        formulario = new Programa
+        {
+            Id = programa.Id,
+            Nombre = programa.Nombre,
+            Tipo = programa.Tipo,
+            Nivel = programa.Nivel,
+            FechaCreacion = programa.FechaCreacion,
+            FechaCierre = programa.FechaCierre,
+            NumeroCohortes = programa.NumeroCohortes,
+            CantGraduados = programa.CantGraduados,
+            FechaActualizacion = programa.FechaActualizacion,
+            Ciudad = programa.Ciudad,
+            Facultad = programa.Facultad,
+            Activo = programa.Activo
+        };
+
+        editando = true;
+        mensaje = string.Empty;
+    }
+
+    private async Task Eliminar(int id)
+    {
+        var resultado = await Servicio.Eliminar(id);
+
+        if (!resultado.Ok)
+        {
+            MostrarError(resultado.Errores);
+            return;
+        }
+
+        mensaje = "Programa retirado correctamente.";
+        esError = false;
+
+        if (editando && formulario.Id == id)
+        {
+            LimpiarFormulario();
+        }
+
+        await CargarProgramas();
+    }
+
+    private void Cancelar()
+    {
+        LimpiarFormulario();
+        mensaje = string.Empty;
+    }
+
+    private void LimpiarFormulario()
+    {
+        formulario = new Programa();
+        editando = false;
+    }
+
+    private void MostrarError(List<string> errores)
+    {
+        mensaje = string.Join(" ", errores);
+        esError = true;
+    }
+}
