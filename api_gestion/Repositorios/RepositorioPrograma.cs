@@ -80,6 +80,7 @@ public class RepositorioPrograma : IRepositorioPrograma
         const string sql = @"
             INSERT INTO programa
             (
+                id,
                 nombre,
                 tipo,
                 nivel,
@@ -94,6 +95,7 @@ public class RepositorioPrograma : IRepositorioPrograma
             )
             VALUES
             (
+                @Id,
                 @Nombre,
                 @Tipo,
                 @Nivel,
@@ -105,11 +107,11 @@ public class RepositorioPrograma : IRepositorioPrograma
                 @Ciudad,
                 @Facultad,
                 1
-            );
+            );";
 
-            SELECT CAST(SCOPE_IDENTITY() AS int);";
+        await db.ExecuteAsync(sql, programa);
 
-        return await db.ExecuteScalarAsync<int>(sql, programa);
+        return programa.Id;
     }
 
     public async Task<bool> ActualizarAsync(Programa programa)

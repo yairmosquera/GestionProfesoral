@@ -1,4 +1,5 @@
-using Microsoft.Data.SqlClient;
+using ApiGestion.Repositorios;
+using ApiGestion.Servicios;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,10 +18,16 @@ if (string.IsNullOrWhiteSpace(dbConnection))
     );
 }
 
-// Registrar SqlConnection para inyección de dependencias
-builder.Services.AddScoped<SqlConnection>(_ =>
-    new SqlConnection(dbConnection)
-);
+// Registrar la cadena como DefaultConnection
+builder.Configuration["ConnectionStrings:DefaultConnection"] = dbConnection;
+
+// Repositorios
+builder.Services.AddScoped<IRepositorioPrograma, RepositorioPrograma>();
+builder.Services.AddScoped<IRepositorioAreaConocimiento, RepositorioAreaConocimiento>();
+
+// Servicios
+builder.Services.AddScoped<IServicioPrograma, ServicioPrograma>();
+builder.Services.AddScoped<IServicioAreaConocimiento, ServicioAreaConocimiento>();
 
 var app = builder.Build();
 

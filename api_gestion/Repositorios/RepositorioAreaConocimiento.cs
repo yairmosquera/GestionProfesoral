@@ -29,6 +29,8 @@ public class RepositorioAreaConocimiento : IRepositorioAreaConocimiento
         const string sql = @"
             SELECT
                 id AS Id,
+                gran_area AS GranArea,
+                area AS Area,
                 disciplina AS Disciplina,
                 activo AS Activo
             FROM area_conocimiento
@@ -44,6 +46,8 @@ public class RepositorioAreaConocimiento : IRepositorioAreaConocimiento
         const string sql = @"
             SELECT
                 id AS Id,
+                gran_area AS GranArea,
+                area AS Area,
                 disciplina AS Disciplina,
                 activo AS Activo
             FROM area_conocimiento
@@ -55,31 +59,46 @@ public class RepositorioAreaConocimiento : IRepositorioAreaConocimiento
         );
     }
 
-    public async Task<string> CrearAsync(AreaConocimiento area)
+    public async Task<string> CrearAsync(AreaConocimiento areaConocimiento)
     {
         using var db = CrearConexion();
 
         const string sql = @"
             INSERT INTO area_conocimiento
-                (id, disciplina, activo)
+            (
+                id,
+                gran_area,
+                area,
+                disciplina,
+                activo
+            )
             VALUES
-                (@Id, @Disciplina, 1);";
+            (
+                @Id,
+                @GranArea,
+                @Area,
+                @Disciplina,
+                1
+            );";
 
-        await db.ExecuteAsync(sql, area);
+        await db.ExecuteAsync(sql, areaConocimiento);
 
-        return area.Id;
+        return areaConocimiento.Id;
     }
 
-    public async Task<bool> ActualizarAsync(AreaConocimiento area)
+    public async Task<bool> ActualizarAsync(AreaConocimiento areaConocimiento)
     {
         using var db = CrearConexion();
 
         const string sql = @"
             UPDATE area_conocimiento
-            SET disciplina = @Disciplina
+            SET
+                gran_area = @GranArea,
+                area = @Area,
+                disciplina = @Disciplina
             WHERE id = @Id AND activo = 1";
 
-        var filasAfectadas = await db.ExecuteAsync(sql, area);
+        var filasAfectadas = await db.ExecuteAsync(sql, areaConocimiento);
 
         return filasAfectadas > 0;
     }

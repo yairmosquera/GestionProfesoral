@@ -7,6 +7,10 @@ namespace ApiGestion.Peticiones;
 /// </summary>
 public class ProgramaCrear
 {
+    [Required(ErrorMessage = "El identificador es obligatorio.")]
+    [Range(1, int.MaxValue, ErrorMessage = "El identificador debe ser mayor que 0.")]
+    public int Id { get; set; }
+
     [Required(ErrorMessage = "El nombre es obligatorio.")]
     [StringLength(60, ErrorMessage = "El nombre no puede superar los 60 caracteres.")]
     public string Nombre { get; set; } = string.Empty;
