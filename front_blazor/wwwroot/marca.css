@@ -1,0 +1,11 @@
+:root {
+    --color-principal: #2563eb;
+    --color-menu: #172033;
+    --color-fondo: #f5f7fb;
+    --color-texto: #1f2937;
+}
+
+::selection {
+    background: var(--color-principal);
+    color: white;
+}
