@@ -1,9 +1,13 @@
+
 using FrontGestion.Components;
 using FrontGestion.Servicios;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Servicios de Blazor
+// =====================================================
+// CONFIGURACIÓN DE BLAZOR
+// =====================================================
+
 builder.Services
     .AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -11,6 +15,10 @@ builder.Services
 // Dirección de la API
 var apiUrl = builder.Configuration["ApiUrl"]
     ?? "http://localhost:5000";
+
+// =====================================================
+// SERVICIOS DE LA VERSIÓN 1
+// =====================================================
 
 // Servicio de Programas
 builder.Services.AddHttpClient<ServicioPrograma>(cliente =>
@@ -42,6 +50,20 @@ builder.Services.AddHttpClient<ServicioTerminoClave>(cliente =>
     cliente.BaseAddress = new Uri(apiUrl);
 });
 
+// =====================================================
+// SERVICIOS DE LA VERSIÓN 2
+// =====================================================
+
+// Servicio de Docentes
+builder.Services.AddHttpClient<ServicioDocente>(cliente =>
+{
+    cliente.BaseAddress = new Uri(apiUrl);
+});
+
+// =====================================================
+// CONFIGURACIÓN DEL FRONTEND
+// =====================================================
+
 // Dirección del frontend Blazor
 builder.WebHost.UseUrls("http://localhost:5100");
 
@@ -57,7 +79,9 @@ if (!app.Environment.IsDevelopment())
 app.UseStaticFiles();
 app.UseAntiforgery();
 
+// Configuración de componentes interactivos
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
+// Ejecutar aplicación
 app.Run();
