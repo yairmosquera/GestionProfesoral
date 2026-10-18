@@ -1,0 +1,308 @@
+@page "/docentes"
+@rendermode InteractiveServer
+@using FrontGestion.Servicios
+@inject ServicioDocente Servicio
+@inject ServicioLineaInvestigacion ServicioLineas
+
+<PageTitle>Docentes</PageTitle>
+
+<h1>Gestión de Docentes</h1>
+
+@if (!string.IsNullOrWhiteSpace(mensaje))
+{
+    <div class="alert @(error ? "alert-danger" : "alert-success")">
+        @mensaje
+    </div>
+}
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h4>@(editando ? "Editar docente" : "Registrar docente")</h4>
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label>Cédula</label>
+                <input type="number" class="form-control" @bind="formulario.Cedula" disabled="@editando" />
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label>Nombres</label>
+                <input class="form-control" @bind="formulario.Nombres" />
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label>Apellidos</label>
+                <input class="form-control" @bind="formulario.Apellidos" />
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label>Género</label>
+                <select class="form-select" @bind="formulario.Genero">
+                    <option value="">Seleccione</option>
+                    <option value="Femenino">Femenino</option>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Otro">Otro</option>
+                </select>
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label>Cargo</label>
+                <input class="form-control" @bind="formulario.Cargo" />
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label>Fecha de nacimiento</label>
+                <input type="date" class="form-control" @bind="formulario.FechaNacimiento" @bind:format="yyyy-MM-dd" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label>Correo electrónico</label>
+                <input type="email" class="form-control" @bind="formulario.Correo" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label>Teléfono</label>
+                <input class="form-control" @bind="formulario.Telefono" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label>URL CvLAC</label>
+                <input class="form-control" @bind="formulario.UrlCvlac" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label>Escalafón</label>
+                <input class="form-control" @bind="formulario.Escalafon" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label>Categoría Minciencias</label>
+                <input class="form-control" @bind="formulario.CatMinciencia" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label>Convocatoria Minciencias</label>
+                <input class="form-control" @bind="formulario.ConvMinciencia" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label>Nacionalidad</label>
+                <input class="form-control" @bind="formulario.Nacionalidaad" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label>Línea de investigación principal</label>
+                <select class="form-select" @bind="formulario.LineaInvestigacionPrincipal">
+                    <option value="">(Ninguna)</option>
+                    @foreach (var linea in lineas)
+                    {
+                        <option value="@linea.Id">
+                            @linea.Nombre
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-12 mb-3">
+                <label>Perfil</label>
+                <textarea class="form-control" rows="3" @bind="formulario.Perfil"></textarea>
+            </div>
+        </div>
+
+        <button class="btn btn-primary me-2" disabled="@guardando" @onclick="Guardar">
+            @(editando ? "Actualizar" : "Guardar")
+        </button>
+
+        <button class="btn btn-secondary" @onclick="Limpiar">
+            Limpiar
+        </button>
+    </div>
+</div>
+
+<h4>Docentes registrados</h4>
+
+@if (cargando)
+{
+    <p>Cargando docentes...</p>
+}
+else if (docentes.Count == 0)
+{
+    <p>No hay docentes registrados.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>Cédula</th>
+                    <th>Nombres</th>
+                    <th>Apellidos</th>
+                    <th>Correo</th>
+                    <th>Cargo</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var docente in docentes)
+                {
+                    <tr>
+                        <td>@docente.Cedula</td>
+                        <td>@docente.Nombres</td>
+                        <td>@docente.Apellidos</td>
+                        <td>@docente.Correo</td>
+                        <td>@docente.Cargo</td>
+                        <td>
+                            <button class="btn btn-sm btn-warning me-2" @onclick="() => Editar(docente)">
+                                Editar
+                            </button>
+                            <button class="btn btn-sm btn-danger" @onclick="() => Eliminar(docente.Cedula)">
+                                Retirar
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<DocenteDto> docentes = new();
+    private List<LineaInvestigacionDto> lineas = new();
+    private DocenteDto formulario = new();
+
+    private bool cargando = true;
+    private bool guardando;
+    private bool editando;
+    private bool error;
+    private string mensaje = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            lineas = await ServicioLineas.ObtenerTodosAsync();
+            await Cargar();
+        }
+        catch (Exception)
+        {
+            error = true;
+            mensaje = "No fue posible cargar la información.";
+            cargando = false;
+        }
+    }
+
+    private async Task Cargar()
+    {
+        cargando = true;
+        try
+        {
+            docentes = await Servicio.Listar();
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private async Task Guardar()
+    {
+        if (formulario.Cedula <= 0 ||
+            string.IsNullOrWhiteSpace(formulario.Nombres) ||
+            string.IsNullOrWhiteSpace(formulario.Apellidos) ||
+            string.IsNullOrWhiteSpace(formulario.Correo))
+        {
+            error = true;
+            mensaje = "Complete la cédula, los nombres, apellidos y correo.";
+            return;
+        }
+
+        guardando = true;
+
+        try
+        {
+            var resultado = await Servicio.Guardar(
+                formulario, editando);
+
+            error = !resultado.Ok;
+            mensaje = resultado.Mensaje;
+
+            if (resultado.Ok)
+            {
+                LimpiarFormulario();
+                await Cargar();
+            }
+        }
+        catch (Exception)
+        {
+            error = true;
+            mensaje = "No fue posible comunicarse con la API.";
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private void Editar(DocenteDto docente)
+    {
+        formulario = new DocenteDto
+        {
+            Cedula = docente.Cedula,
+            Nombres = docente.Nombres,
+            Apellidos = docente.Apellidos,
+            Genero = docente.Genero,
+            Cargo = docente.Cargo,
+            FechaNacimiento = docente.FechaNacimiento,
+            Correo = docente.Correo,
+            Telefono = docente.Telefono,
+            UrlCvlac = docente.UrlCvlac,
+            Escalafon = docente.Escalafon,
+            Perfil = docente.Perfil,
+            CatMinciencia = docente.CatMinciencia,
+            ConvMinciencia = docente.ConvMinciencia,
+            Nacionalidaad = docente.Nacionalidaad,
+            LineaInvestigacionPrincipal =
+                docente.LineaInvestigacionPrincipal
+        };
+
+        editando = true;
+        mensaje = "";
+    }
+
+    private async Task Eliminar(int cedula)
+    {
+        try
+        {
+            var resultado = await Servicio.Eliminar(cedula);
+            error = !resultado.Ok;
+            mensaje = resultado.Mensaje;
+
+            if (resultado.Ok)
+            {
+                if (editando && formulario.Cedula == cedula)
+                    LimpiarFormulario();
+
+                await Cargar();
+            }
+        }
+        catch (Exception)
+        {
+            error = true;
+            mensaje = "No fue posible retirar el docente.";
+        }
+    }
+
+    private void Limpiar()
+    {
+        LimpiarFormulario();
+        mensaje = "";
+    }
+
+    private void LimpiarFormulario()
+    {
+        formulario = new DocenteDto();
+        editando = false;
+    }
+}
