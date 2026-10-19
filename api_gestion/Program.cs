@@ -2,6 +2,7 @@
 using ApiGestion.Repositorios;
 using ApiGestion.Servicios;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Configuración de controladores
@@ -35,8 +36,16 @@ builder.Services.AddScoped<IRepositorioRed, RepositorioRed>();
 builder.Services.AddScoped<IRepositorioLineaInvestigacion, RepositorioLineaInvestigacion>();
 builder.Services.AddScoped<IRepositorioTerminoClave, RepositorioTerminoClave>();
 
+
 // Repositorios de la versión 2
 builder.Services.AddScoped<IRepositorioDocente, RepositorioDocente>();
+builder.Services.AddScoped<IRepositorioEstudioRealizado, RepositorioEstudioRealizado>();
+builder.Services.AddScoped<IRepositorioEvaluacionDocente, RepositorioEvaluacionDocente>();
+builder.Services.AddScoped<IRepositorioExperienciaDocente, RepositorioExperienciaDocente>();
+builder.Services.AddScoped<IRepositorioReconocimientoDocente, RepositorioReconocimientoDocente>();
+builder.Services.AddScoped<IRepositorioRedDocente, RepositorioRedDocente>();
+builder.Services.AddScoped<IRepositorioDocenteDepartamento, RepositorioDocenteDepartamento>();
+
 
 // =====================================================
 // SERVICIOS
@@ -51,6 +60,12 @@ builder.Services.AddScoped<IServicioTerminoClave, ServicioTerminoClave>();
 
 // Servicios de la versión 2
 builder.Services.AddScoped<IServicioDocente, ServicioDocente>();
+builder.Services.AddScoped<IServicioEstudioRealizado, ServicioEstudioRealizado>();
+builder.Services.AddScoped<IServicioEvaluacionDocente, ServicioEvaluacionDocente>();
+builder.Services.AddScoped<IServicioExperienciaDocente, ServicioExperienciaDocente>();
+builder.Services.AddScoped<IServicioReconocimientoDocente, ServicioReconocimientoDocente>();
+builder.Services.AddScoped<IServicioRedDocente, ServicioRedDocente>();
+builder.Services.AddScoped<IServicioDocenteDepartamento, ServicioDocenteDepartamento>();
 
 // =====================================================
 // CONFIGURACIÓN DE LA APLICACIÓN

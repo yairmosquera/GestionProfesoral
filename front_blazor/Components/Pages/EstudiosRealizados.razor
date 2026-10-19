@@ -1,0 +1,625 @@
+@page "/estudios-realizados"
+@using Microsoft.AspNetCore.Components
+@rendermode InteractiveServer
+@using FrontGestion.Servicios
+
+@inject ServicioEstudioRealizado Servicio
+@inject ServicioDocente ServicioDocentes
+
+<PageTitle>Estudios Realizados</PageTitle>
+
+<h1>Gestión de Estudios Realizados</h1>
+
+@if (!string.IsNullOrWhiteSpace(mensaje))
+{
+    <div class="alert @(esError ? "alert-danger" : "alert-success")">
+        @mensaje
+    </div>
+}
+
+<!-- FORMULARIO DE ESTUDIOS -->
+
+<div class="card mb-4">
+    <div class="card-body">
+
+        <h4 class="mb-4">
+            @(editando ? "Editar estudio" : "Registrar estudio")
+        </h4>
+
+        <div class="estudio-form-grid">
+
+            <!-- FILA 1: CÓDIGO Y DOCENTE -->
+
+            <div class="campo-estudio span-3">
+                <label class="form-label">
+                    Código del estudio
+                </label>
+
+                @if (editando)
+                {
+                    <input type="number" class="form-control" value="@formulario.Id" disabled />
+                }
+                else
+                {
+                    <input class="form-control" value="Automático" disabled />
+                }
+            </div>
+
+            <div class="campo-estudio span-9">
+                <label class="form-label">
+                    Docente
+                </label>
+
+                <select class="form-select" @bind="formulario.Docente">
+                    <option value="0">
+                        Seleccione un docente
+                    </option>
+
+                    @foreach (var docente in docentes)
+                    {
+                        <option value="@docente.Cedula">
+                            @docente.Nombres @docente.Apellidos - @docente.Cedula
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <!-- FILA 2: TÍTULO Y UNIVERSIDAD -->
+
+            <div class="campo-estudio span-6">
+                <label class="form-label">
+                    Título obtenido
+                </label>
+
+                <input class="form-control" maxlength="45" @bind="formulario.Titulo" />
+            </div>
+
+            <div class="campo-estudio span-6">
+                <label class="form-label">
+                    Universidad
+                </label>
+
+                <input class="form-control" maxlength="50" @bind="formulario.Universidad" />
+            </div>
+
+            <!-- FILA 3: FECHA, TIPO Y ACREDITACIÓN -->
+
+            <div class="campo-estudio span-4">
+                <label class="form-label">
+                    Fecha
+                </label>
+
+                <input type="date" class="form-control" @bind="formulario.Fecha" @bind:format="yyyy-MM-dd" />
+            </div>
+
+            <div class="campo-estudio span-4">
+                <label class="form-label">
+                    Tipo de estudio
+                </label>
+
+                <select class="form-select" @bind="formulario.Tipo">
+                    <option value="">Seleccione</option>
+                    <option value="Pregrado">Pregrado</option>
+                    <option value="Especialización">Especialización</option>
+                    <option value="Maestría">Maestría</option>
+                    <option value="Doctorado">Doctorado</option>
+                    <option value="Otro">Otro</option>
+                </select>
+            </div>
+
+            <div class="campo-estudio span-4">
+                <label class="form-label">
+                    Institución acreditada
+                </label>
+
+                <select class="form-select" @bind="formulario.InsAcreditada">
+                    <option value="0">No</option>
+                    <option value="1">Sí</option>
+                </select>
+            </div>
+
+            <!-- FILA 4: CIUDAD, PAÍS Y METODOLOGÍA -->
+
+            <div class="campo-estudio span-4">
+                <label class="form-label">
+                    Ciudad
+                </label>
+
+                <input class="form-control" maxlength="45" @bind="formulario.Ciudad" />
+            </div>
+
+            <div class="campo-estudio span-4">
+                <label class="form-label">
+                    País
+                </label>
+
+                <input class="form-control" maxlength="45" @bind="formulario.Pais" />
+            </div>
+
+            <div class="campo-estudio span-4">
+                <label class="form-label">
+                    Metodología
+                </label>
+
+                <select class="form-select" @bind="formulario.Metodologia">
+                    <option value="">Seleccione</option>
+                    <option value="Presencial">Presencial</option>
+                    <option value="Virtual">Virtual</option>
+                    <option value="Distancia">Distancia</option>
+                    <option value="Mixta">Mixta</option>
+                </select>
+            </div>
+
+            <!-- FILA 5: PERFIL DEL EGRESADO -->
+
+            <div class="campo-estudio span-12">
+                <label class="form-label">
+                    Perfil del egresado
+                </label>
+
+                <textarea class="form-control perfil-egresado" rows="4" @bind="formulario.PerfilEgresado"></textarea>
+            </div>
+
+        </div>
+
+        <!-- BOTONES EN UNA FILA INDEPENDIENTE -->
+
+        <div class="botones-formulario-estudio">
+
+            <button class="btn btn-primary me-2" disabled="@guardando" @onclick="Guardar">
+                @(guardando
+                    ? "Guardando..."
+                    : editando
+                        ? "Actualizar"
+                        : "Guardar")
+            </button>
+
+            <button class="btn btn-secondary" disabled="@guardando" @onclick="Limpiar">
+                Limpiar
+            </button>
+
+        </div>
+
+    </div>
+</div>
+
+<!-- LISTADO DE ESTUDIOS -->
+
+<h4 class="mb-3">Estudios registrados</h4>
+
+@if (cargando)
+{
+    <p>Cargando estudios...</p>
+}
+else if (estudios.Count == 0)
+{
+    <div class="alert alert-info">
+        No hay estudios registrados.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+
+        <table class="table table-striped table-bordered align-middle">
+
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Título</th>
+                    <th>Universidad</th>
+                    <th>Docente</th>
+                    <th>Tipo</th>
+                    <th>Fecha</th>
+                    <th class="columna-acciones-estudio">
+                        Acciones
+                    </th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var estudio in estudios)
+                {
+                    <tr>
+                        <td>@estudio.Id</td>
+                        <td>@estudio.Titulo</td>
+                        <td>@estudio.Universidad</td>
+                        <td>@NombreDocente(estudio.Docente)</td>
+                        <td>@estudio.Tipo</td>
+
+                        <td>
+                            @estudio.Fecha.ToString("dd/MM/yyyy")
+                        </td>
+
+                        <td class="columna-acciones-estudio">
+
+                            <div class="acciones-estudio">
+
+                                <button type="button" class="btn btn-warning btn-accion" title="Editar estudio"
+                                        @onclick="() => Editar(estudio)">
+                                    ✏️ Editar
+                                </button>
+
+                                <button type="button" class="btn btn-danger btn-accion" title="Retirar estudio"
+                                        @onclick="() => Eliminar(estudio.Id)">
+                                    🗑️ Retirar
+                                </button>
+
+                            </div>
+
+                        </td>
+                    </tr>
+                }
+            </tbody>
+
+        </table>
+
+    </div>
+}
+
+<!-- ESTILOS DEL FORMULARIO Y DE LOS BOTONES DE LA TABLA -->
+
+<style>
+    /* DISTRIBUCIÓN GENERAL DEL FORMULARIO */
+
+    .estudio-form-grid {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        column-gap: 20px;
+        row-gap: 20px;
+        width: 100%;
+    }
+
+    .estudio-form-grid .span-3 {
+        grid-column: span 3;
+    }
+
+    .estudio-form-grid .span-4 {
+        grid-column: span 4;
+    }
+
+    .estudio-form-grid .span-6 {
+        grid-column: span 6;
+    }
+
+    .estudio-form-grid .span-9 {
+        grid-column: span 9;
+    }
+
+    .estudio-form-grid .span-12 {
+        grid-column: span 12;
+    }
+
+    /* CAMPOS */
+
+    .estudio-form-grid .campo-estudio {
+        min-width: 0;
+    }
+
+    .estudio-form-grid .form-label {
+        display: block;
+        margin-bottom: 7px;
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1.4;
+    }
+
+    .estudio-form-grid .form-control,
+    .estudio-form-grid .form-select {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        height: 40px;
+        padding: 8px 12px;
+        font-size: 14px;
+        line-height: 1.4;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        background-color: #ffffff;
+        color: #1e293b;
+        box-sizing: border-box;
+    }
+
+    .estudio-form-grid .form-control:focus,
+    .estudio-form-grid .form-select:focus {
+        border-color: #2563eb;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .estudio-form-grid .form-control:disabled {
+        background-color: #e5e7eb;
+        color: #64748b;
+    }
+
+    .estudio-form-grid .perfil-egresado {
+        height: auto;
+        min-height: 110px;
+        padding: 12px;
+        resize: vertical;
+    }
+
+    /* BOTONES GUARDAR Y LIMPIAR:
+       MISMAS CLASES ORIGINALES */
+
+    .botones-formulario-estudio {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0;
+        margin-top: 22px;
+        clear: both;
+    }
+
+    /* COLUMNA DE ACCIONES */
+
+    .columna-acciones-estudio {
+        width: 240px;
+        min-width: 240px;
+        vertical-align: middle;
+    }
+
+    .acciones-estudio {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        width: 100%;
+    }
+
+    .acciones-estudio .btn-accion {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 38px;
+        padding: 7px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+        transition: background-color 0.2s ease,
+            transform 0.2s ease;
+    }
+
+    /* EDITAR */
+
+    .acciones-estudio .btn-warning {
+        background-color: #f59e0b;
+        border-color: #f59e0b;
+        color: #ffffff;
+    }
+
+    .acciones-estudio .btn-warning:hover {
+        background-color: #d97706;
+        border-color: #d97706;
+        color: #ffffff;
+    }
+
+    /* RETIRAR */
+
+    .acciones-estudio .btn-danger {
+        background-color: #dc2626;
+        border-color: #dc2626;
+        color: #ffffff;
+    }
+
+    .acciones-estudio .btn-danger:hover {
+        background-color: #b91c1c;
+        border-color: #b91c1c;
+        color: #ffffff;
+    }
+
+    .acciones-estudio .btn-accion:hover {
+        transform: translateY(-1px);
+    }
+
+    /* PANTALLAS MEDIANAS */
+
+    @@media (max-width: 900px) {
+
+        .estudio-form-grid .span-3,
+        .estudio-form-grid .span-4 {
+            grid-column: span 6;
+        }
+
+        .estudio-form-grid .span-9,
+        .estudio-form-grid .span-12 {
+            grid-column: span 12;
+        }
+    }
+
+    /* CELULARES */
+
+    @@media (max-width: 600px) {
+
+        .estudio-form-grid {
+            row-gap: 15px;
+        }
+
+        .estudio-form-grid .span-3,
+        .estudio-form-grid .span-4,
+        .estudio-form-grid .span-6,
+        .estudio-form-grid .span-9,
+        .estudio-form-grid .span-12 {
+            grid-column: span 12;
+        }
+
+        .columna-acciones-estudio {
+            width: 220px;
+            min-width: 220px;
+        }
+
+        .acciones-estudio {
+            gap: 6px;
+        }
+
+        .acciones-estudio .btn-accion {
+            font-size: 11px;
+            padding: 7px 5px;
+        }
+    }
+</style>
+
+@code {
+
+    [SupplyParameterFromQuery(Name = "docente")]
+    public int? DocenteDesdeUrl { get; set; }
+
+    private List<EstudioRealizadoDto> estudios = new();
+    private List<DocenteDto> docentes = new();
+
+    private EstudioRealizadoDto formulario = new();
+
+    private bool cargando = true;
+    private bool guardando;
+    private bool editando;
+    private bool esError;
+
+    private string mensaje = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Cargar();
+
+        if (DocenteDesdeUrl.HasValue &&
+            docentes.Any(d => d.Cedula == DocenteDesdeUrl.Value))
+        {
+            formulario.Docente = DocenteDesdeUrl.Value;
+        }
+    }
+
+    private async Task Cargar()
+    {
+        cargando = true;
+
+        try
+        {
+            docentes = await ServicioDocentes.Listar();
+            estudios = await Servicio.Listar();
+        }
+        catch (Exception)
+        {
+            esError = true;
+            mensaje = "No fue posible cargar la información.";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private string NombreDocente(int cedula)
+    {
+        var docente = docentes.FirstOrDefault(
+            d => d.Cedula == cedula);
+
+        return docente is null
+            ? $"Docente {cedula}"
+            : $"{docente.Nombres} {docente.Apellidos}";
+    }
+
+    private async Task Guardar()
+    {
+        if ((editando && formulario.Id <= 0) ||
+            formulario.Docente <= 0 ||
+            string.IsNullOrWhiteSpace(formulario.Titulo) ||
+            string.IsNullOrWhiteSpace(formulario.Universidad) ||
+            string.IsNullOrWhiteSpace(formulario.Tipo) ||
+            string.IsNullOrWhiteSpace(formulario.Ciudad) ||
+            string.IsNullOrWhiteSpace(formulario.Metodologia) ||
+            string.IsNullOrWhiteSpace(formulario.Pais) ||
+            string.IsNullOrWhiteSpace(formulario.PerfilEgresado))
+        {
+            esError = true;
+            mensaje = "Complete todos los campos obligatorios.";
+            return;
+        }
+
+        guardando = true;
+
+        try
+        {
+            var resultado = await Servicio.Guardar(
+                formulario, editando);
+
+            esError = !resultado.Ok;
+            mensaje = resultado.Mensaje;
+
+            if (resultado.Ok)
+            {
+                LimpiarFormulario();
+                await Cargar();
+            }
+        }
+        catch (Exception)
+        {
+            esError = true;
+            mensaje = "No fue posible comunicarse con la API.";
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private void Editar(EstudioRealizadoDto e)
+    {
+        formulario = new EstudioRealizadoDto
+        {
+            Id = e.Id,
+            Titulo = e.Titulo,
+            Universidad = e.Universidad,
+            Fecha = e.Fecha,
+            Tipo = e.Tipo,
+            Ciudad = e.Ciudad,
+            Docente = e.Docente,
+            InsAcreditada = e.InsAcreditada,
+            Metodologia = e.Metodologia,
+            PerfilEgresado = e.PerfilEgresado,
+            Pais = e.Pais,
+            Activo = e.Activo
+        };
+
+        editando = true;
+        mensaje = "";
+    }
+
+    private async Task Eliminar(int id)
+    {
+        try
+        {
+            var resultado = await Servicio.Eliminar(id);
+
+            esError = !resultado.Ok;
+            mensaje = resultado.Mensaje;
+
+            if (resultado.Ok)
+            {
+                if (editando && formulario.Id == id)
+                {
+                    LimpiarFormulario();
+                }
+
+                await Cargar();
+            }
+        }
+        catch (Exception)
+        {
+            esError = true;
+            mensaje = "No fue posible retirar el estudio.";
+        }
+    }
+
+    private void Limpiar()
+    {
+        LimpiarFormulario();
+        mensaje = "";
+    }
+
+    private void LimpiarFormulario()
+    {
+        formulario = new EstudioRealizadoDto();
+        editando = false;
+    }
+}

@@ -112,7 +112,7 @@ else
                     <th>Nivel</th>
                     <th>Ciudad</th>
                     <th>Facultad</th>
-                    <th>Acciones</th>
+                    <th class="columna-acciones">Acciones</th>
                 </tr>
             </thead>
 
@@ -126,14 +126,21 @@ else
                         <td>@programa.Nivel</td>
                         <td>@programa.Ciudad</td>
                         <td>@programa.Facultad</td>
-                        <td>
-                            <button class="btn btn-sm btn-warning me-2" @onclick="() => Editar(programa)">
-                                Editar
-                            </button>
 
-                            <button class="btn btn-sm btn-danger" @onclick="() => Eliminar(programa.Id)">
-                                Retirar
-                            </button>
+                        <td class="columna-acciones">
+                            <div class="acciones-programa">
+
+                                <button type="button" class="btn btn-warning btn-accion" title="Editar programa"
+                                        @onclick="() => Editar(programa)">
+                                    ✏️ Editar
+                                </button>
+
+                                <button type="button" class="btn btn-danger btn-accion" title="Retirar programa"
+                                        @onclick="() => Eliminar(programa.Id)">
+                                    🗑️ Retirar
+                                </button>
+
+                            </div>
                         </td>
                     </tr>
                 }
@@ -141,6 +148,82 @@ else
         </table>
     </div>
 }
+
+<!-- ESTILOS SOLO PARA LOS BOTONES EDITAR Y RETIRAR -->
+
+<style>
+    .columna-acciones {
+        min-width: 240px;
+        width: 240px;
+        vertical-align: middle;
+    }
+
+    .acciones-programa {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        width: 100%;
+    }
+
+    .acciones-programa .btn-accion {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 38px;
+        padding: 7px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+        transition: background-color 0.2s ease,
+            transform 0.2s ease;
+    }
+
+    .acciones-programa .btn-warning {
+        background-color: #f59e0b;
+        border-color: #f59e0b;
+        color: #ffffff;
+    }
+
+    .acciones-programa .btn-warning:hover {
+        background-color: #d97706;
+        border-color: #d97706;
+        color: #ffffff;
+    }
+
+    .acciones-programa .btn-danger {
+        background-color: #dc2626;
+        border-color: #dc2626;
+        color: #ffffff;
+    }
+
+    .acciones-programa .btn-danger:hover {
+        background-color: #b91c1c;
+        border-color: #b91c1c;
+        color: #ffffff;
+    }
+
+    .acciones-programa .btn-accion:hover {
+        transform: translateY(-1px);
+    }
+
+    @@media (max-width: 768px) {
+        .columna-acciones {
+            min-width: 220px;
+            width: 220px;
+        }
+
+        .acciones-programa {
+            gap: 6px;
+        }
+
+        .acciones-programa .btn-accion {
+            font-size: 11px;
+            padding: 7px 5px;
+        }
+    }
+</style>
 
 @code {
     private List<Programa> programas = new();
