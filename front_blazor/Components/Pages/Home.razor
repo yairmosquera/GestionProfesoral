@@ -8,8 +8,11 @@
 
     <p class="descripcion">
         Plataforma para la administración de la información
-        del sistema de Gestión Profesoral.
+        académica y profesoral.
     </p>
+
+    <!-- CATÁLOGOS ACADÉMICOS -->
+    <h2 class="seccion-titulo">Catálogos Académicos</h2>
 
     <div class="modulos-grid">
 
@@ -18,7 +21,8 @@
             <h3>Programas</h3>
 
             <p>
-                Consulta, registra y administra los programas académicos.
+                Consulta, registra y administra
+                los programas académicos.
             </p>
 
             <a href="/programas" class="btn-modulo">
@@ -31,7 +35,8 @@
             <h3>Áreas de Conocimiento</h3>
 
             <p>
-                Consulta, registra y administra las áreas de conocimiento.
+                Consulta, registra y administra
+                las áreas y disciplinas de conocimiento.
             </p>
 
             <a href="/areas-conocimiento" class="btn-modulo">
@@ -44,8 +49,8 @@
             <h3>Redes</h3>
 
             <p>
-                Consulta, registra y administra las redes académicas
-                y de investigación.
+                Consulta, registra y administra
+                las redes académicas y de investigación.
             </p>
 
             <a href="/redes" class="btn-modulo">
@@ -58,7 +63,9 @@
             <h3>Líneas de Investigación</h3>
 
             <p>
-                Consulta, registra y administra las líneas de investigación.
+                Consulta, registra y administra
+                las líneas de investigación
+                del sistema académico.
             </p>
 
             <a href="/lineas-investigacion" class="btn-modulo">
@@ -71,8 +78,9 @@
             <h3>Términos Clave</h3>
 
             <p>
-                Consulta, registra y administra los términos clave
-                del sistema.
+                Consulta, registra y administra
+                los términos clave utilizados
+                en la clasificación de información.
             </p>
 
             <a href="/terminos-clave" class="btn-modulo">
@@ -80,7 +88,16 @@
             </a>
         </div>
 
-        <!-- DOCENTES - VERSIÓN 2 -->
+    </div>
+
+    <!-- GESTIÓN PROFESORAL -->
+    <h2 class="seccion-titulo seccion-separada">
+        Gestión Profesoral
+    </h2>
+
+    <div class="modulos-grid">
+
+        <!-- DOCENTES -->
         <div class="modulo-card">
             <h3>Docentes</h3>
 
@@ -95,19 +112,35 @@
             </a>
         </div>
 
+        <!-- ESTUDIOS REALIZADOS -->
+        <div class="modulo-card">
+            <h3>Estudios Realizados</h3>
+
+            <p>
+                Consulta, registra y administra los estudios
+                académicos realizados por los docentes,
+                incluyendo sus títulos y universidades.
+            </p>
+
+            <a href="/estudios-realizados" class="btn-modulo">
+                Gestionar estudios
+            </a>
+        </div>
+
     </div>
 
 </div>
 
 <style>
     .home-container {
-        padding: 10px 0;
+        padding: 10px 0 35px;
     }
 
     .home-container h1 {
         font-size: 2rem;
         font-weight: 700;
         margin-bottom: 20px;
+        color: #1e293b;
     }
 
     .descripcion {
@@ -116,9 +149,22 @@
         margin-bottom: 28px;
     }
 
+    .seccion-titulo {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 18px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .seccion-separada {
+        margin-top: 35px;
+    }
+
     .modulos-grid {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 20px;
     }
 
@@ -133,18 +179,29 @@
         flex-direction: column;
 
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
+
+        transition:
+            transform 0.2s ease,
+            box-shadow 0.2s ease;
+    }
+
+    .modulo-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 12px rgba(0, 0, 0, 0.10);
     }
 
     .modulo-card h3 {
         font-size: 1.25rem;
         font-weight: 700;
         margin-bottom: 15px;
+        color: #1e293b;
     }
 
     .modulo-card p {
         color: #666;
         flex-grow: 1;
         margin-bottom: 20px;
+        line-height: 1.6;
     }
 
     .btn-modulo {
@@ -155,11 +212,12 @@
         color: white;
 
         padding: 10px 16px;
-
         border-radius: 6px;
 
         text-decoration: none;
         font-weight: 600;
+
+        transition: background 0.2s ease;
     }
 
     .btn-modulo:hover {
@@ -170,6 +228,14 @@
     @@media (max-width: 900px) {
         .modulos-grid {
             grid-template-columns: 1fr;
+        }
+
+        .home-container h1 {
+            font-size: 1.6rem;
+        }
+
+        .modulo-card {
+            min-height: 170px;
         }
     }
 </style>

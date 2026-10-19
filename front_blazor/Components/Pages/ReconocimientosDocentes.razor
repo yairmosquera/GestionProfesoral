@@ -1,0 +1,484 @@
+@page "/reconocimientos-docentes"
+@rendermode InteractiveServer
+
+@using FrontGestion.Servicios
+@using Microsoft.AspNetCore.Components
+
+@inject ServicioReconocimientoDocente Servicio
+@inject ServicioDocente ServicioDocentes
+
+<PageTitle>Reconocimientos Docentes</PageTitle>
+
+<h1>Gestión de Reconocimientos Docentes</h1>
+
+<p class="text-muted">
+    Registra y administra los reconocimientos
+    académicos y profesionales de los docentes.
+</p>
+
+@if (!string.IsNullOrWhiteSpace(mensaje))
+{
+    <div class="alert @(esError ? "alert-danger" : "alert-success")">
+        @mensaje
+    </div>
+}
+
+<!-- FORMULARIO -->
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h4 class="mb-4">
+            @(editando ? "Editar reconocimiento" : "Registrar reconocimiento")
+        </h4>
+
+        <div class="reconocimiento-form-grid">
+
+            <div class="campo-reconocimiento span-3">
+                <label class="form-label">Código del reconocimiento</label>
+                <input class="form-control" value="@(editando ? formulario.Id.ToString() : "Automático")" disabled />
+            </div>
+
+            <div class="campo-reconocimiento span-9">
+                <label class="form-label">Docente</label>
+                <select class="form-select" @bind="formulario.Docente">
+                    <option value="0">Seleccione un docente</option>
+                    @foreach (var docente in docentes)
+                    {
+                        <option value="@docente.Cedula">
+                            @docente.Nombres @docente.Apellidos - @docente.Cedula
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <div class="campo-reconocimiento span-6">
+                <label class="form-label">Nombre del reconocimiento</label>
+                <input class="form-control" maxlength="45" placeholder="Ejemplo: Excelencia docente"
+                       @bind="formulario.Nombre" />
+            </div>
+
+            <div class="campo-reconocimiento span-6">
+                <label class="form-label">Institución que lo otorga</label>
+                <input class="form-control" maxlength="45" placeholder="Nombre de la institución"
+                       @bind="formulario.Institucion" />
+            </div>
+
+            <div class="campo-reconocimiento span-4">
+                <label class="form-label">Tipo</label>
+                <input class="form-control" maxlength="45" placeholder="Ejemplo: Académico" @bind="formulario.Tipo" />
+            </div>
+
+            <div class="campo-reconocimiento span-4">
+                <label class="form-label">Ámbito</label>
+                <input class="form-control" maxlength="45" placeholder="Ejemplo: Institucional"
+                       @bind="formulario.Ambito" />
+            </div>
+
+            <div class="campo-reconocimiento span-4">
+                <label class="form-label">Fecha del reconocimiento</label>
+                <input type="date" class="form-control" @bind="formulario.Fecha" @bind:format="yyyy-MM-dd" />
+            </div>
+
+        </div>
+
+        <!-- BOTONES DEL FORMULARIO: ESTILO ORIGINAL -->
+
+        <div class="botones-formulario-reconocimiento">
+            <button class="btn btn-primary me-2" disabled="@guardando" @onclick="Guardar">
+                @(guardando
+                    ? "Guardando..."
+                    : editando ? "Actualizar" : "Guardar")
+            </button>
+
+            <button class="btn btn-secondary" disabled="@guardando" @onclick="Limpiar">
+                Limpiar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- LISTADO -->
+
+<h4 class="mb-3">Reconocimientos registrados</h4>
+
+@if (cargando)
+{
+    <p>Cargando reconocimientos...</p>
+}
+else if (reconocimientos.Count == 0)
+{
+    <div class="alert alert-info">
+        No hay reconocimientos registrados.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Docente</th>
+                    <th>Reconocimiento</th>
+                    <th>Institución</th>
+                    <th>Tipo</th>
+                    <th>Ámbito</th>
+                    <th>Fecha</th>
+                    <th class="columna-acciones-reconocimiento">Acciones</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var reconocimiento in reconocimientos)
+                {
+                    <tr>
+                        <td>@reconocimiento.Id</td>
+                        <td>@NombreDocente(reconocimiento.Docente)</td>
+                        <td>@reconocimiento.Nombre</td>
+                        <td>@reconocimiento.Institucion</td>
+                        <td>@reconocimiento.Tipo</td>
+                        <td>@reconocimiento.Ambito</td>
+                        <td>@reconocimiento.Fecha.ToString("dd/MM/yyyy")</td>
+
+                        <td class="columna-acciones-reconocimiento">
+                            <div class="acciones-reconocimiento">
+                                <button type="button" class="btn btn-warning btn-accion" title="Editar reconocimiento"
+                                        @onclick="() => Editar(reconocimiento)">
+                                    ✏️ Editar
+                                </button>
+
+                                <button type="button" class="btn btn-danger btn-accion" title="Retirar reconocimiento"
+                                        @onclick="() => Eliminar(reconocimiento.Id)">
+                                    🗑️ Retirar
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<style>
+    .reconocimiento-form-grid {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        column-gap: 20px;
+        row-gap: 20px;
+        width: 100%;
+    }
+
+    .reconocimiento-form-grid .span-3 {
+        grid-column: span 3;
+    }
+
+    .reconocimiento-form-grid .span-4 {
+        grid-column: span 4;
+    }
+
+    .reconocimiento-form-grid .span-6 {
+        grid-column: span 6;
+    }
+
+    .reconocimiento-form-grid .span-9 {
+        grid-column: span 9;
+    }
+
+    .reconocimiento-form-grid .campo-reconocimiento {
+        min-width: 0;
+    }
+
+    .reconocimiento-form-grid .form-label {
+        display: block;
+        margin-bottom: 7px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .reconocimiento-form-grid .form-control,
+    .reconocimiento-form-grid .form-select {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        height: 40px;
+        padding: 8px 12px;
+        font-size: 14px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        background-color: #ffffff;
+        color: #1e293b;
+        box-sizing: border-box;
+    }
+
+    .reconocimiento-form-grid .form-control:focus,
+    .reconocimiento-form-grid .form-select:focus {
+        border-color: #2563eb;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .reconocimiento-form-grid .form-control:disabled {
+        background-color: #e5e7eb;
+        color: #64748b;
+    }
+
+    .botones-formulario-reconocimiento {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-top: 24px;
+    }
+
+    .columna-acciones-reconocimiento {
+        width: 240px;
+        min-width: 240px;
+        vertical-align: middle;
+    }
+
+    .acciones-reconocimiento {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        width: 100%;
+    }
+
+    .acciones-reconocimiento .btn-accion {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 38px;
+        padding: 7px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+        transition: background-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .acciones-reconocimiento .btn-warning {
+        background-color: #f59e0b;
+        border-color: #f59e0b;
+        color: #ffffff;
+    }
+
+    .acciones-reconocimiento .btn-warning:hover {
+        background-color: #d97706;
+        border-color: #d97706;
+        color: #ffffff;
+    }
+
+    .acciones-reconocimiento .btn-danger {
+        background-color: #dc2626;
+        border-color: #dc2626;
+        color: #ffffff;
+    }
+
+    .acciones-reconocimiento .btn-danger:hover {
+        background-color: #b91c1c;
+        border-color: #b91c1c;
+        color: #ffffff;
+    }
+
+    .acciones-reconocimiento .btn-accion:hover {
+        transform: translateY(-1px);
+    }
+
+    @@media (max-width: 900px) {
+
+        .reconocimiento-form-grid .span-3,
+        .reconocimiento-form-grid .span-4,
+        .reconocimiento-form-grid .span-6 {
+            grid-column: span 6;
+        }
+
+        .reconocimiento-form-grid .span-9 {
+            grid-column: span 12;
+        }
+    }
+
+    @@media (max-width: 600px) {
+
+        .reconocimiento-form-grid .span-3,
+        .reconocimiento-form-grid .span-4,
+        .reconocimiento-form-grid .span-6,
+        .reconocimiento-form-grid .span-9 {
+            grid-column: span 12;
+        }
+
+        .columna-acciones-reconocimiento {
+            width: 220px;
+            min-width: 220px;
+        }
+
+        .acciones-reconocimiento {
+            gap: 6px;
+        }
+
+        .acciones-reconocimiento .btn-accion {
+            font-size: 11px;
+            padding: 7px 5px;
+        }
+    }
+</style>
+
+@code {
+    [SupplyParameterFromQuery(Name = "docente")]
+    public int? DocenteDesdeUrl { get; set; }
+
+    private List<ReconocimientoDocenteDto> reconocimientos = new();
+    private List<DocenteDto> docentes = new();
+
+    private ReconocimientoDocenteDto formulario = new();
+
+    private bool cargando = true;
+    private bool guardando;
+    private bool editando;
+    private bool esError;
+
+    private string mensaje = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Cargar();
+        SeleccionarDocenteDesdeUrl();
+    }
+
+    private async Task Cargar()
+    {
+        cargando = true;
+
+        try
+        {
+            docentes = await ServicioDocentes.Listar();
+            reconocimientos = await Servicio.Listar();
+        }
+        catch (Exception)
+        {
+            esError = true;
+            mensaje = "No fue posible cargar los reconocimientos.";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private string NombreDocente(int cedula)
+    {
+        var docente = docentes.FirstOrDefault(d => d.Cedula == cedula);
+
+        return docente is null
+            ? $"Cédula: {cedula}"
+            : $"{docente.Nombres} {docente.Apellidos}";
+    }
+
+    private async Task Guardar()
+    {
+        if (guardando)
+            return;
+
+        if (formulario.Docente <= 0 ||
+            string.IsNullOrWhiteSpace(formulario.Tipo) ||
+            string.IsNullOrWhiteSpace(formulario.Institucion) ||
+            string.IsNullOrWhiteSpace(formulario.Nombre) ||
+            string.IsNullOrWhiteSpace(formulario.Ambito) ||
+            formulario.Fecha == default)
+        {
+            esError = true;
+            mensaje = "Complete todos los campos obligatorios.";
+            return;
+        }
+
+        guardando = true;
+
+        try
+        {
+            var resultado = await Servicio.Guardar(formulario, editando);
+
+            esError = !resultado.Ok;
+            mensaje = resultado.Mensaje;
+
+            if (resultado.Ok)
+            {
+                LimpiarFormulario();
+                await Cargar();
+            }
+        }
+        catch (Exception)
+        {
+            esError = true;
+            mensaje = "No fue posible comunicarse con la API.";
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private void Editar(ReconocimientoDocenteDto reconocimiento)
+    {
+        formulario = new ReconocimientoDocenteDto
+        {
+            Id = reconocimiento.Id,
+            Tipo = reconocimiento.Tipo,
+            Fecha = reconocimiento.Fecha,
+            Institucion = reconocimiento.Institucion,
+            Nombre = reconocimiento.Nombre,
+            Ambito = reconocimiento.Ambito,
+            Docente = reconocimiento.Docente,
+            Activo = reconocimiento.Activo
+        };
+
+        editando = true;
+        mensaje = "";
+    }
+
+    private async Task Eliminar(int id)
+    {
+        try
+        {
+            var resultado = await Servicio.Eliminar(id);
+
+            esError = !resultado.Ok;
+            mensaje = resultado.Mensaje;
+
+            if (resultado.Ok)
+            {
+                if (editando && formulario.Id == id)
+                    LimpiarFormulario();
+
+                await Cargar();
+            }
+        }
+        catch (Exception)
+        {
+            esError = true;
+            mensaje = "No fue posible retirar el reconocimiento.";
+        }
+    }
+
+    private void Limpiar()
+    {
+        LimpiarFormulario();
+        mensaje = "";
+    }
+
+    private void LimpiarFormulario()
+    {
+        formulario = new ReconocimientoDocenteDto();
+        editando = false;
+        SeleccionarDocenteDesdeUrl();
+    }
+
+    private void SeleccionarDocenteDesdeUrl()
+    {
+        if (DocenteDesdeUrl.HasValue &&
+            docentes.Any(d => d.Cedula == DocenteDesdeUrl.Value))
+        {
+            formulario.Docente = DocenteDesdeUrl.Value;
+        }
+    }
+}

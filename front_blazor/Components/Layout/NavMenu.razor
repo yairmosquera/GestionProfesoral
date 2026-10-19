@@ -1,33 +1,136 @@
-<div class="nav-header">
-    <div class="nav-brand">
-        Gestión Profesoral
+<div class="menu-contenedor">
+
+    <div class="nav-header">
+        <div class="nav-brand">
+            Gestión Profesoral
+        </div>
     </div>
+
+    <nav class="nav-menu">
+
+        <!-- INICIO -->
+        <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+            Inicio
+        </NavLink>
+
+        <!-- CATÁLOGOS ACADÉMICOS -->
+        <div class="nav-section-title">
+            CATÁLOGOS ACADÉMICOS
+        </div>
+
+        <NavLink class="nav-link" href="programas">
+            Programas
+        </NavLink>
+
+        <NavLink class="nav-link" href="areas-conocimiento">
+            Áreas de Conocimiento
+        </NavLink>
+
+        <NavLink class="nav-link" href="redes">
+            Redes
+        </NavLink>
+
+        <NavLink class="nav-link" href="lineas-investigacion">
+            Líneas de Investigación
+        </NavLink>
+
+        <NavLink class="nav-link" href="terminos-clave">
+            Términos Clave
+        </NavLink>
+
+        <!-- GESTIÓN PROFESORAL -->
+        <div class="nav-section-title">
+            GESTIÓN PROFESORAL
+        </div>
+
+        <NavLink class="nav-link" href="docentes">
+            Docentes
+        </NavLink>
+
+        <NavLink class="nav-link" href="estudios-realizados">
+            Estudios Realizados
+        </NavLink>
+
+        <NavLink class="nav-link" href="evaluaciones-docentes">
+            Evaluaciones Docentes
+        </NavLink>
+
+        <NavLink class="nav-link" href="experiencias-docentes">
+            Experiencias Docentes
+        </NavLink>
+
+        <NavLink class="nav-link" href="reconocimientos-docentes">
+            Reconocimientos Docentes
+        </NavLink>
+        
+        <NavLink class="nav-link" href="redes-docentes">
+            Redes por Docente
+        </NavLink>
+        
+        <NavLink class="nav-link" href="docentes-departamentos">
+            Docentes por Departamento
+        </NavLink>
+
+
+
+    </nav>
 </div>
 
-<nav class="nav-menu">
+<style>
+    .menu-contenedor {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100vh;
+        max-height: 100vh;
+        min-height: 0;
+        overflow: hidden;
+    }
 
-    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-        Inicio
-    </NavLink>
+    .menu-contenedor .nav-header {
+        flex-shrink: 0;
+    }
 
-    <NavLink class="nav-link" href="programas">
-        Programas
-    </NavLink>
+    .menu-contenedor .nav-menu {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding-bottom: 24px;
+        scrollbar-width: thin;
+        scrollbar-color: #64748b #172237;
+    }
 
-    <NavLink class="nav-link" href="areas-conocimiento">
-        Áreas de Conocimiento
-    </NavLink>
+    .nav-section-title {
+        padding: 18px 20px 8px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+        color: #94a3b8;
+        text-transform: uppercase;
+        flex-shrink: 0;
+    }
 
-    <NavLink class="nav-link" href="redes">
-        Redes
-    </NavLink>
+    .menu-contenedor .nav-link {
+        flex-shrink: 0;
+    }
 
-    <NavLink class="nav-link" href="lineas-investigacion">
-        Líneas de Investigación
-    </NavLink>
+    .menu-contenedor .nav-menu::-webkit-scrollbar {
+        width: 6px;
+    }
 
-    <NavLink class="nav-link" href="terminos-clave">
-        Términos Clave
-    </NavLink>
+    .menu-contenedor .nav-menu::-webkit-scrollbar-track {
+        background: #172237;
+    }
 
-</nav>
+    .menu-contenedor .nav-menu::-webkit-scrollbar-thumb {
+        background: #64748b;
+        border-radius: 10px;
+    }
+
+    .menu-contenedor .nav-menu::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+</style>

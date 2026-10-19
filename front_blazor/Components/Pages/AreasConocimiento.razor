@@ -81,7 +81,7 @@ else
                     <th>Gran área</th>
                     <th>Área</th>
                     <th>Disciplina</th>
-                    <th>Acciones</th>
+                    <th class="columna-acciones">Acciones</th>
                 </tr>
             </thead>
 
@@ -95,14 +95,20 @@ else
                         <td>@area.Area</td>
                         <td>@area.Disciplina</td>
 
-                        <td>
-                            <button class="btn btn-sm btn-warning me-2" @onclick="() => Editar(area)">
-                                Editar
-                            </button>
+                        <td class="columna-acciones">
+                            <div class="acciones-area">
 
-                            <button class="btn btn-sm btn-danger" @onclick="() => Eliminar(area.Id)">
-                                Retirar
-                            </button>
+                                <button type="button" class="btn btn-warning btn-accion" title="Editar área de conocimiento"
+                                        @onclick="() => Editar(area)">
+                                    ✏️ Editar
+                                </button>
+
+                                <button type="button" class="btn btn-danger btn-accion" title="Retirar área de conocimiento"
+                                        @onclick="() => Eliminar(area.Id)">
+                                    🗑️ Retirar
+                                </button>
+
+                            </div>
                         </td>
                     </tr>
                 }
@@ -113,6 +119,82 @@ else
 
     </div>
 }
+
+<!-- ESTILOS SOLO PARA LOS BOTONES EDITAR Y RETIRAR -->
+
+<style>
+    .columna-acciones {
+        min-width: 240px;
+        width: 240px;
+        vertical-align: middle;
+    }
+
+    .acciones-area {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        width: 100%;
+    }
+
+    .acciones-area .btn-accion {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 38px;
+        padding: 7px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+        transition: background-color 0.2s ease,
+            transform 0.2s ease;
+    }
+
+    .acciones-area .btn-warning {
+        background-color: #f59e0b;
+        border-color: #f59e0b;
+        color: #ffffff;
+    }
+
+    .acciones-area .btn-warning:hover {
+        background-color: #d97706;
+        border-color: #d97706;
+        color: #ffffff;
+    }
+
+    .acciones-area .btn-danger {
+        background-color: #dc2626;
+        border-color: #dc2626;
+        color: #ffffff;
+    }
+
+    .acciones-area .btn-danger:hover {
+        background-color: #b91c1c;
+        border-color: #b91c1c;
+        color: #ffffff;
+    }
+
+    .acciones-area .btn-accion:hover {
+        transform: translateY(-1px);
+    }
+
+    @@media (max-width: 768px) {
+        .columna-acciones {
+            min-width: 220px;
+            width: 220px;
+        }
+
+        .acciones-area {
+            gap: 6px;
+        }
+
+        .acciones-area .btn-accion {
+            font-size: 11px;
+            padding: 7px 5px;
+        }
+    }
+</style>
 
 @code {
 

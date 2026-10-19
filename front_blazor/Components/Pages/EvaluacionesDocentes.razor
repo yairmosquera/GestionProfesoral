@@ -1,0 +1,581 @@
+@page "/evaluaciones-docentes"
+@rendermode InteractiveServer
+
+@using FrontGestion.Servicios
+@using Microsoft.AspNetCore.Components
+
+@inject ServicioEvaluacionDocente Servicio
+@inject ServicioDocente ServicioDocentes
+
+<PageTitle>Evaluaciones Docentes</PageTitle>
+
+<h1>Gestión de Evaluaciones Docentes</h1>
+
+<p class="text-muted">
+    Registra y administra las calificaciones académicas
+    de los docentes por semestre.
+</p>
+
+@if (!string.IsNullOrWhiteSpace(mensaje))
+{
+    <div class="alert @(esError ? "alert-danger" : "alert-success")">
+        @mensaje
+    </div>
+}
+
+<!-- FORMULARIO DE EVALUACIONES -->
+
+<div class="card mb-4">
+    <div class="card-body">
+
+        <h4 class="mb-4">
+            @(editando ? "Editar evaluación" : "Registrar evaluación")
+        </h4>
+
+        <div class="evaluacion-form-grid">
+
+            <!-- FILA 1: CÓDIGO Y DOCENTE -->
+
+            <div class="campo-evaluacion span-3">
+                <label class="form-label">
+                    Código de evaluación
+                </label>
+
+                @if (editando)
+                {
+                    <input class="form-control" value="@formulario.Id" disabled />
+                }
+                else
+                {
+                    <input class="form-control" value="Automático" disabled />
+                }
+            </div>
+
+            <div class="campo-evaluacion span-9">
+                <label class="form-label">
+                    Docente
+                </label>
+
+                <select class="form-select" @bind="formulario.Docente">
+
+                    <option value="0">
+                        Seleccione un docente
+                    </option>
+
+                    @foreach (var docente in docentes)
+                    {
+                        <option value="@docente.Cedula">
+                            @docente.Nombres @docente.Apellidos - @docente.Cedula
+                        </option>
+                    }
+
+                </select>
+            </div>
+
+            <!-- FILA 2: SEMESTRE Y CALIFICACIÓN -->
+
+            <div class="campo-evaluacion span-6">
+                <label class="form-label">
+                    Semestre académico
+                </label>
+
+                <input class="form-control" maxlength="45" placeholder="Ejemplo: 2026-2" @bind="formulario.Semestre" />
+            </div>
+
+            <div class="campo-evaluacion span-6">
+                <label class="form-label">
+                    Calificación
+                </label>
+
+                <input type="number" class="form-control" step="0.1" placeholder="Ejemplo: 4.5"
+                       @bind="formulario.Calificacion" />
+
+                <div class="form-text">
+                    Ingresa la calificación según la escala
+                    definida por la institución.
+                </div>
+            </div>
+
+        </div>
+
+        <!-- BOTONES DEL FORMULARIO -->
+
+        <div class="botones-formulario-evaluacion">
+
+            <button class="btn btn-primary me-2" disabled="@guardando" @onclick="Guardar">
+                @(guardando
+                    ? "Guardando..."
+                    : editando
+                        ? "Actualizar"
+                        : "Guardar")
+            </button>
+
+            <button class="btn btn-secondary" disabled="@guardando" @onclick="Limpiar">
+                Limpiar
+            </button>
+
+        </div>
+
+    </div>
+</div>
+
+<!-- LISTADO DE EVALUACIONES -->
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+
+    <h4 class="mb-0">
+        Evaluaciones registradas
+    </h4>
+
+    <span class="badge bg-primary">
+        Total: @evaluaciones.Count
+    </span>
+
+</div>
+
+@if (cargando)
+{
+    <p>Cargando evaluaciones...</p>
+}
+else if (evaluaciones.Count == 0)
+{
+    <div class="alert alert-info">
+        No hay evaluaciones registradas.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+
+        <table class="table table-striped table-bordered align-middle">
+
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Docente</th>
+                    <th>Semestre</th>
+                    <th>Calificación</th>
+                    <th class="columna-acciones-evaluacion">
+                        Acciones
+                    </th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                @foreach (var evaluacion in evaluaciones)
+                {
+                    <tr>
+
+                        <td>@evaluacion.Id</td>
+
+                        <td>
+                            @NombreDocente(evaluacion.Docente)
+                        </td>
+
+                        <td>
+                            @evaluacion.Semestre
+                        </td>
+
+                        <td>
+                            @evaluacion.Calificacion.ToString("0.##")
+                        </td>
+
+                        <td class="columna-acciones-evaluacion">
+
+                            <div class="acciones-evaluacion">
+
+                                <button type="button" class="btn btn-warning btn-accion" title="Editar evaluación"
+                                        @onclick="() => Editar(evaluacion)">
+                                    ✏️ Editar
+                                </button>
+
+                                <button type="button" class="btn btn-danger btn-accion" title="Retirar evaluación"
+                                        @onclick="() => Eliminar(evaluacion.Id)">
+                                    🗑️ Retirar
+                                </button>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+                }
+
+            </tbody>
+
+        </table>
+
+    </div>
+}
+
+<!-- ESTILOS DEL FORMULARIO Y BOTONES -->
+
+<style>
+    /* DISTRIBUCIÓN DEL FORMULARIO */
+
+    .evaluacion-form-grid {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        column-gap: 20px;
+        row-gap: 22px;
+        width: 100%;
+    }
+
+    .evaluacion-form-grid .span-3 {
+        grid-column: span 3;
+    }
+
+    .evaluacion-form-grid .span-6 {
+        grid-column: span 6;
+    }
+
+    .evaluacion-form-grid .span-9 {
+        grid-column: span 9;
+    }
+
+    /* CAMPOS DEL FORMULARIO */
+
+    .evaluacion-form-grid .campo-evaluacion {
+        min-width: 0;
+    }
+
+    .evaluacion-form-grid .form-label {
+        display: block;
+        margin-bottom: 7px;
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1.4;
+    }
+
+    .evaluacion-form-grid .form-control,
+    .evaluacion-form-grid .form-select {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        height: 40px;
+        padding: 8px 12px;
+        font-size: 14px;
+        line-height: 1.4;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        background-color: #ffffff;
+        color: #1e293b;
+        box-sizing: border-box;
+    }
+
+    .evaluacion-form-grid .form-control:focus,
+    .evaluacion-form-grid .form-select:focus {
+        border-color: #2563eb;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .evaluacion-form-grid .form-control:disabled {
+        background-color: #e5e7eb;
+        color: #64748b;
+    }
+
+    .evaluacion-form-grid .form-text {
+        margin-top: 7px;
+        font-size: 12px;
+        color: #64748b;
+    }
+
+    /* BOTONES GUARDAR Y LIMPIAR */
+
+    .botones-formulario-evaluacion {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-top: 24px;
+        clear: both;
+    }
+
+    /* COLUMNA DE ACCIONES */
+
+    .columna-acciones-evaluacion {
+        width: 240px;
+        min-width: 240px;
+        vertical-align: middle;
+    }
+
+    .acciones-evaluacion {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        width: 100%;
+    }
+
+    .acciones-evaluacion .btn-accion {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 38px;
+        padding: 7px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+        transition: background-color 0.2s ease,
+            transform 0.2s ease;
+    }
+
+    /* EDITAR */
+
+    .acciones-evaluacion .btn-warning {
+        background-color: #f59e0b;
+        border-color: #f59e0b;
+        color: #ffffff;
+    }
+
+    .acciones-evaluacion .btn-warning:hover {
+        background-color: #d97706;
+        border-color: #d97706;
+        color: #ffffff;
+    }
+
+    /* RETIRAR */
+
+    .acciones-evaluacion .btn-danger {
+        background-color: #dc2626;
+        border-color: #dc2626;
+        color: #ffffff;
+    }
+
+    .acciones-evaluacion .btn-danger:hover {
+        background-color: #b91c1c;
+        border-color: #b91c1c;
+        color: #ffffff;
+    }
+
+    .acciones-evaluacion .btn-accion:hover {
+        transform: translateY(-1px);
+    }
+
+    /* PANTALLAS MEDIANAS */
+
+    @@media (max-width: 900px) {
+
+        .evaluacion-form-grid .span-3 {
+            grid-column: span 6;
+        }
+
+        .evaluacion-form-grid .span-9 {
+            grid-column: span 12;
+        }
+
+    }
+
+    /* CELULARES */
+
+    @@media (max-width: 600px) {
+
+        .evaluacion-form-grid {
+            row-gap: 16px;
+        }
+
+        .evaluacion-form-grid .span-3,
+        .evaluacion-form-grid .span-6,
+        .evaluacion-form-grid .span-9 {
+            grid-column: span 12;
+        }
+
+        .columna-acciones-evaluacion {
+            width: 220px;
+            min-width: 220px;
+        }
+
+        .acciones-evaluacion {
+            gap: 6px;
+        }
+
+        .acciones-evaluacion .btn-accion {
+            font-size: 11px;
+            padding: 7px 5px;
+        }
+
+    }
+</style>
+
+@code {
+
+    // SELECCIÓN AUTOMÁTICA DEL DOCENTE DESDE LA URL
+
+    [SupplyParameterFromQuery(Name = "docente")]
+    public int? DocenteDesdeUrl { get; set; }
+
+    private List<EvaluacionDocenteDto> evaluaciones = new();
+    private List<DocenteDto> docentes = new();
+
+    private EvaluacionDocenteDto formulario = new();
+
+    private bool cargando = true;
+    private bool guardando;
+    private bool editando;
+    private bool esError;
+
+    private string mensaje = "";
+
+    // CARGA INICIAL
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Cargar();
+
+        if (DocenteDesdeUrl.HasValue &&
+            docentes.Any(
+                d => d.Cedula == DocenteDesdeUrl.Value))
+        {
+            formulario.Docente = DocenteDesdeUrl.Value;
+        }
+    }
+
+    // CARGAR EVALUACIONES Y DOCENTES
+
+    private async Task Cargar()
+    {
+        cargando = true;
+
+        try
+        {
+            docentes = await ServicioDocentes.Listar();
+
+            evaluaciones = await Servicio.Listar();
+        }
+        catch (Exception)
+        {
+            esError = true;
+            mensaje = "No fue posible cargar las evaluaciones.";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    // OBTENER NOMBRE DEL DOCENTE
+
+    private string NombreDocente(int cedula)
+    {
+        var docente = docentes.FirstOrDefault(
+            d => d.Cedula == cedula);
+
+        if (docente is null)
+        {
+            return $"Cédula: {cedula}";
+        }
+
+        return $"{docente.Nombres} {docente.Apellidos}";
+    }
+
+    // GUARDAR O ACTUALIZAR
+
+    private async Task Guardar()
+    {
+        if (formulario.Docente <= 0 ||
+            string.IsNullOrWhiteSpace(formulario.Semestre) ||
+            float.IsNaN(formulario.Calificacion) ||
+            float.IsInfinity(formulario.Calificacion))
+        {
+            esError = true;
+            mensaje = "Complete correctamente los campos obligatorios.";
+            return;
+        }
+
+        guardando = true;
+
+        try
+        {
+            var resultado = await Servicio.Guardar(
+                formulario, editando);
+
+            esError = !resultado.Ok;
+            mensaje = resultado.Mensaje;
+
+            if (resultado.Ok)
+            {
+                LimpiarFormulario();
+
+                await Cargar();
+            }
+        }
+        catch (Exception)
+        {
+            esError = true;
+            mensaje = "No fue posible comunicarse con la API.";
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    // EDITAR EVALUACIÓN
+
+    private void Editar(EvaluacionDocenteDto evaluacion)
+    {
+        formulario = new EvaluacionDocenteDto
+        {
+            Id = evaluacion.Id,
+            Calificacion = evaluacion.Calificacion,
+            Semestre = evaluacion.Semestre,
+            Docente = evaluacion.Docente,
+            Activo = evaluacion.Activo
+        };
+
+        editando = true;
+        mensaje = "";
+    }
+
+    // RETIRAR EVALUACIÓN
+
+    private async Task Eliminar(int id)
+    {
+        try
+        {
+            var resultado = await Servicio.Eliminar(id);
+
+            esError = !resultado.Ok;
+            mensaje = resultado.Mensaje;
+
+            if (resultado.Ok)
+            {
+                if (editando && formulario.Id == id)
+                {
+                    LimpiarFormulario();
+                }
+
+                await Cargar();
+            }
+        }
+        catch (Exception)
+        {
+            esError = true;
+            mensaje = "No fue posible retirar la evaluación.";
+        }
+    }
+
+    // LIMPIAR FORMULARIO
+
+    private void Limpiar()
+    {
+        LimpiarFormulario();
+        mensaje = "";
+    }
+
+    private void LimpiarFormulario()
+    {
+        formulario = new EvaluacionDocenteDto();
+        editando = false;
+
+        if (DocenteDesdeUrl.HasValue &&
+            docentes.Any(
+                d => d.Cedula == DocenteDesdeUrl.Value))
+        {
+            formulario.Docente = DocenteDesdeUrl.Value;
+        }
+    }
+}

@@ -50,6 +50,14 @@ builder.Services.AddHttpClient<ServicioTerminoClave>(cliente =>
     cliente.BaseAddress = new Uri(apiUrl);
 });
 
+
+builder.Services.AddScoped(sp =>
+    new HttpClient
+    {
+        BaseAddress = new Uri(apiUrl)
+    });
+
+
 // =====================================================
 // SERVICIOS DE LA VERSIÓN 2
 // =====================================================
@@ -59,6 +67,49 @@ builder.Services.AddHttpClient<ServicioDocente>(cliente =>
 {
     cliente.BaseAddress = new Uri(apiUrl);
 });
+
+// Estudios Realizados
+builder.Services.AddHttpClient<ServicioEstudioRealizado>(cliente =>
+{
+    cliente.BaseAddress = new Uri(apiUrl);
+});
+
+// Evaluacion Docente
+builder.Services.AddHttpClient<ServicioEvaluacionDocente>(
+    cliente =>
+    {
+        cliente.BaseAddress = new Uri(apiUrl);
+    });
+
+
+builder.Services.AddHttpClient<ServicioExperienciaDocente>(
+    cliente =>
+    {
+        cliente.BaseAddress = new Uri(apiUrl);
+    });
+
+
+builder.Services.AddHttpClient<ServicioReconocimientoDocente>(
+    cliente =>
+    {
+        cliente.BaseAddress = new Uri(apiUrl);
+    });
+
+
+builder.Services.AddHttpClient<ServicioRedDocente>(
+    cliente =>
+    {
+        cliente.BaseAddress = new Uri(apiUrl);
+    });
+
+
+builder.Services.AddHttpClient<ServicioDocenteDepartamento>(
+    cliente =>
+    {
+        cliente.BaseAddress = new Uri(apiUrl);
+    });
+
+
 
 // =====================================================
 // CONFIGURACIÓN DEL FRONTEND
