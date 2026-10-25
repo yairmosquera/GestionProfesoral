@@ -45,6 +45,10 @@ builder.Services.AddScoped<IRepositorioExperienciaDocente, RepositorioExperienci
 builder.Services.AddScoped<IRepositorioReconocimientoDocente, RepositorioReconocimientoDocente>();
 builder.Services.AddScoped<IRepositorioRedDocente, RepositorioRedDocente>();
 builder.Services.AddScoped<IRepositorioDocenteDepartamento, RepositorioDocenteDepartamento>();
+builder.Services.AddScoped<IRepositorioInteresesFuturos, RepositorioInteresesFuturos>();
+builder.Services.AddScoped<IRepositorioEstudioAc, RepositorioEstudioAc>();
+builder.Services.AddScoped<IRepositorioApoyoProfesoral, RepositorioApoyoProfesoral>();
+builder.Services.AddScoped<IRepositorioBeca, RepositorioBeca>();
 
 
 // =====================================================
@@ -66,6 +70,10 @@ builder.Services.AddScoped<IServicioExperienciaDocente, ServicioExperienciaDocen
 builder.Services.AddScoped<IServicioReconocimientoDocente, ServicioReconocimientoDocente>();
 builder.Services.AddScoped<IServicioRedDocente, ServicioRedDocente>();
 builder.Services.AddScoped<IServicioDocenteDepartamento, ServicioDocenteDepartamento>();
+builder.Services.AddScoped<IServicioInteresesFuturos, ServicioInteresesFuturos>();
+builder.Services.AddScoped<IServicioEstudioAc, ServicioEstudioAc>();
+builder.Services.AddScoped<IServicioApoyoProfesoral, ServicioApoyoProfesoral>();
+builder.Services.AddScoped<IServicioBeca, ServicioBeca>();
 
 // =====================================================
 // CONFIGURACIÓN DE LA APLICACIÓN
