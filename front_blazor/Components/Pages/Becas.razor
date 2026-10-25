@@ -1,0 +1,203 @@
+@page "/becas"
+@rendermode InteractiveServer
+
+@using System.Text.Json
+@using FrontGestion.Servicios
+@inject ServicioBeca Servicio
+@inject ServicioEstudioRealizado ServicioEstudios
+@inject ILogger<Becas> Logger
+
+<PageTitle>Becas</PageTitle>
+
+<h1>Becas</h1>
+<p class="text-muted">Administra las becas asociadas a estudios realizados.</p>
+
+@if (!string.IsNullOrWhiteSpace(mensaje))
+{
+    <div class="alert @(esError ? "alert-danger" : "alert-success")">@mensaje</div>
+}
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h4 class="mb-3">@(editando ? "Editar beca" : "Registrar beca")</h4>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Estudio</label>
+                <select class="form-select" @bind="formulario.Estudios" disabled="@editando">
+                    <option value="0">Seleccione un estudio</option>
+                    @foreach (var estudio in estudios)
+                    {
+                        <option value="@estudio.Id">@estudio.Titulo - @estudio.Universidad</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Tipo de beca</label>
+                <input class="form-control" maxlength="45" @bind="formulario.Tipo" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Institución</label>
+                <input class="form-control" maxlength="80" @bind="formulario.Institucion" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Fecha de inicio</label>
+                <input type="date" class="form-control" @bind="formulario.FechaInicio" @bind:format="yyyy-MM-dd" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Fecha de fin</label>
+                <input type="date" class="form-control" @bind="formulario.FechaFin" @bind:format="yyyy-MM-dd" />
+                <div class="form-text">Opcional si la beca continúa vigente.</div>
+            </div>
+        </div>
+        <div class="mt-3">
+            <button class="btn btn-primary me-2" disabled="@guardando" @onclick="Guardar">
+                @(guardando ? "Guardando..." : editando ? "Actualizar" : "Guardar")
+            </button>
+            <button class="btn btn-secondary" disabled="@guardando" @onclick="Limpiar">Limpiar</button>
+        </div>
+    </div>
+</div>
+
+<h4 class="mb-3">Becas registradas</h4>
+@if (cargando)
+{
+    <p>Cargando becas...</p>
+}
+else if (becas.Count == 0)
+{
+    <div class="alert alert-info">No hay becas registradas.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered align-middle">
+            <thead class="table-light">
+                <tr><th>Estudio</th><th>Tipo</th><th>Institución</th><th>Inicio</th><th>Fin</th><th>Acciones</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var beca in becas)
+                {
+                    <tr>
+                        <td>@TituloEstudio(beca.Estudios)</td>
+                        <td>@beca.Tipo</td>
+                        <td>@beca.Institucion</td>
+                        <td>@beca.FechaInicio.ToString("dd/MM/yyyy")</td>
+                        <td>@(beca.FechaFin?.ToString("dd/MM/yyyy") ?? "Vigente")</td>
+                        <td>
+                            <button class="btn btn-warning btn-sm me-1" @onclick="() => Editar(beca)">Editar</button>
+                            <button class="btn btn-danger btn-sm" @onclick="() => Eliminar(beca.Estudios)">Retirar</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<EstudioRealizadoDto> estudios = new();
+    private List<BecaDto> becas = new();
+    private BecaDto formulario = NuevoFormulario();
+    private string mensaje = string.Empty;
+    private bool esError;
+    private bool cargando = true;
+    private bool guardando;
+    private bool editando;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            estudios = await ServicioEstudios.Listar();
+            becas = await Servicio.Listar();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
+        {
+            Logger.LogError(ex, "No fue posible cargar las becas.");
+            MostrarError("No fue posible cargar los estudios o las becas.");
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private static BecaDto NuevoFormulario() => new()
+    {
+        FechaInicio = DateTime.Today
+    };
+
+    private string TituloEstudio(int id)
+    {
+        var estudio = estudios.FirstOrDefault(x => x.Id == id);
+        return estudio is null ? id.ToString() : $"{estudio.Titulo} - {estudio.Universidad}";
+    }
+
+    private void Editar(BecaDto beca)
+    {
+        formulario = new BecaDto
+        {
+            Estudios = beca.Estudios,
+            Tipo = beca.Tipo,
+            Institucion = beca.Institucion,
+            FechaInicio = beca.FechaInicio,
+            FechaFin = beca.FechaFin
+        };
+        editando = true;
+        mensaje = string.Empty;
+    }
+
+    private async Task Guardar()
+    {
+        guardando = true;
+        try
+        {
+            var resultado = await Servicio.Guardar(formulario, editando);
+            mensaje = resultado.Mensaje;
+            esError = !resultado.Ok;
+            if (resultado.Ok)
+            {
+                Limpiar();
+                becas = await Servicio.Listar();
+            }
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
+        {
+            Logger.LogError(ex, "No fue posible guardar la beca.");
+            MostrarError("No fue posible comunicarse con la API para guardar la beca.");
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private async Task Eliminar(int estudiosId)
+    {
+        try
+        {
+            var resultado = await Servicio.Eliminar(estudiosId);
+            mensaje = resultado.Mensaje;
+            esError = !resultado.Ok;
+            if (resultado.Ok)
+                becas = await Servicio.Listar();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
+        {
+            Logger.LogError(ex, "No fue posible retirar la beca.");
+            MostrarError("No fue posible comunicarse con la API para retirar la beca.");
+        }
+    }
+
+    private void Limpiar()
+    {
+        formulario = NuevoFormulario();
+        editando = false;
+    }
+
+    private void MostrarError(string texto)
+    {
+        mensaje = texto;
+        esError = true;
+    }
+}
