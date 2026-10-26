@@ -94,6 +94,78 @@ BEGIN
 END;
 GO
 
+CREATE OR ALTER PROCEDURE dbo.sp_actualizar_intereses_futuros
+    @Docente INT,
+    @TerminoClave VARCHAR(30),
+    @NuevoDocente INT,
+    @NuevoTerminoClave VARCHAR(30)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        IF NOT EXISTS
+        (
+            SELECT 1 FROM dbo.intereses_futuros WITH (UPDLOCK, HOLDLOCK)
+            WHERE docente = @Docente AND termino_clave = @TerminoClave
+              AND activo = 1
+        )
+            THROW 51016, 'No existe un interés futuro activo para actualizar.', 1;
+
+        IF @Docente = @NuevoDocente AND @TerminoClave = @NuevoTerminoClave
+        BEGIN
+            COMMIT TRANSACTION;
+            EXEC dbo.sp_consultar_intereses_futuros @NuevoDocente, @NuevoTerminoClave;
+            RETURN;
+        END;
+
+        IF EXISTS
+        (
+            SELECT 1 FROM dbo.intereses_futuros WITH (UPDLOCK, HOLDLOCK)
+            WHERE docente = @NuevoDocente
+              AND termino_clave = @NuevoTerminoClave
+              AND activo = 1
+        )
+            THROW 51010, 'El interés futuro de destino ya está registrado.', 1;
+
+        IF EXISTS
+        (
+            SELECT 1 FROM dbo.intereses_futuros WITH (UPDLOCK, HOLDLOCK)
+            WHERE docente = @NuevoDocente
+              AND termino_clave = @NuevoTerminoClave
+              AND activo = 0
+        )
+        BEGIN
+            UPDATE dbo.intereses_futuros
+            SET activo = 0
+            WHERE docente = @Docente AND termino_clave = @TerminoClave;
+
+            UPDATE dbo.intereses_futuros
+            SET activo = 1
+            WHERE docente = @NuevoDocente
+              AND termino_clave = @NuevoTerminoClave;
+        END
+        ELSE
+        BEGIN
+            UPDATE dbo.intereses_futuros
+            SET docente = @NuevoDocente,
+                termino_clave = @NuevoTerminoClave
+            WHERE docente = @Docente AND termino_clave = @TerminoClave;
+        END;
+
+        COMMIT TRANSACTION;
+        EXEC dbo.sp_consultar_intereses_futuros @NuevoDocente, @NuevoTerminoClave;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
+END;
+GO
+
 CREATE OR ALTER PROCEDURE dbo.sp_eliminar_intereses_futuros
     @Docente INT,
     @TerminoClave VARCHAR(30)

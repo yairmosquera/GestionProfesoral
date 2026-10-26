@@ -53,6 +53,24 @@ public class RepositorioEstudioAc : IRepositorioEstudioAc
             commandType: CommandType.StoredProcedure);
     }
 
+    public async Task<EstudioAc?> Actualizar(
+        int estudioOriginal,
+        string areaConocimientoOriginal,
+        EstudioAc relacion)
+    {
+        using var conexion = CrearConexion();
+        return await conexion.QueryFirstOrDefaultAsync<EstudioAc>(
+            "dbo.sp_actualizar_estudio_ac",
+            new
+            {
+                Estudio = estudioOriginal,
+                AreaConocimiento = areaConocimientoOriginal,
+                NuevoEstudio = relacion.Estudio,
+                NuevaAreaConocimiento = relacion.AreaConocimiento
+            },
+            commandType: CommandType.StoredProcedure);
+    }
+
     public async Task<bool> Eliminar(int estudio, string areaConocimiento)
     {
         using var conexion = CrearConexion();

@@ -29,6 +29,20 @@ public class ServicioInteresesFuturos : IServicioInteresesFuturos
             Activo = true
         });
 
+    public Task<InteresFuturo?> Actualizar(
+        int docenteOriginal,
+        string terminoClaveOriginal,
+        InteresFuturoPeticion peticion)
+        => _repositorio.Actualizar(
+            docenteOriginal,
+            terminoClaveOriginal,
+            new InteresFuturo
+            {
+                Docente = peticion.Docente,
+                TerminoClave = peticion.TerminoClave.Trim(),
+                Activo = true
+            });
+
     public Task<bool> Eliminar(int docente, string terminoClave)
         => _repositorio.Eliminar(docente, terminoClave);
 }

@@ -20,12 +20,16 @@
 
 <div class="card mb-4">
     <div class="card-body">
-        <h4 class="mb-3">Registrar interés futuro</h4>
+        <h4 class="mb-3">@(editando ? "Editar interés futuro" : "Registrar interés futuro")</h4>
         <div class="row g-3">
             <div class="col-md-6">
                 <label class="form-label">Docente</label>
-                <select class="form-select" @bind="formulario.Docente">
+                <select class="form-select" @bind="formulario.Docente" disabled="@guardando">
                     <option value="0">Seleccione un docente</option>
+                    @if (editando && docentes.All(x => x.Cedula != docenteOriginal))
+                    {
+                        <option value="@docenteOriginal">@NombreDocente(docenteOriginal) (actual)</option>
+                    }
                     @foreach (var docente in docentes)
                     {
                         <option value="@docente.Cedula">
@@ -36,8 +40,12 @@
             </div>
             <div class="col-md-6">
                 <label class="form-label">Término clave</label>
-                <select class="form-select" @bind="formulario.TerminoClave">
+                <select class="form-select" @bind="formulario.TerminoClave" disabled="@guardando">
                     <option value="">Seleccione un término</option>
+                    @if (editando && terminos.All(x => x.Termino != terminoClaveOriginal))
+                    {
+                        <option value="@terminoClaveOriginal">@terminoClaveOriginal (actual)</option>
+                    }
                     @foreach (var termino in terminos)
                     {
                         <option value="@termino.Termino">@termino.Termino</option>
@@ -46,9 +54,13 @@
             </div>
         </div>
         <div class="mt-3">
-            <button class="btn btn-primary" disabled="@guardando" @onclick="Guardar">
-                @(guardando ? "Guardando..." : "Guardar")
+            <button class="btn btn-primary me-2" disabled="@guardando" @onclick="Guardar">
+                @(guardando ? "Guardando..." : editando ? "Actualizar" : "Guardar")
             </button>
+            @if (editando)
+            {
+                <button class="btn btn-secondary" disabled="@guardando" @onclick="Limpiar">Cancelar</button>
+            }
         </div>
     </div>
 </div>
@@ -76,6 +88,10 @@ else
                         <td>@NombreDocente(interes.Docente)</td>
                         <td>@interes.TerminoClave</td>
                         <td>
+                            <button class="btn btn-warning btn-sm me-1"
+                                    @onclick="() => Editar(interes)">
+                                Editar
+                            </button>
                             <button class="btn btn-danger btn-sm"
                                     @onclick="() => Eliminar(interes.Docente, interes.TerminoClave)">
                                 Retirar
@@ -97,6 +113,9 @@ else
     private bool esError;
     private bool cargando = true;
     private bool guardando;
+    private bool editando;
+    private int docenteOriginal;
+    private string terminoClaveOriginal = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -130,24 +149,41 @@ else
         guardando = true;
         try
         {
-            var resultado = await Servicio.Guardar(formulario);
+            var resultado = await Servicio.Guardar(
+                formulario,
+                editando,
+                docenteOriginal,
+                terminoClaveOriginal);
             mensaje = resultado.Mensaje;
             esError = !resultado.Ok;
             if (resultado.Ok)
             {
-                formulario = new();
+                Limpiar();
                 intereses = await Servicio.Listar();
             }
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
-            Logger.LogError(ex, "No fue posible registrar el interés futuro.");
-            MostrarError("No fue posible comunicarse con la API para registrar el interés.");
+            Logger.LogError(ex, "No fue posible guardar el interés futuro.");
+            MostrarError("No fue posible comunicarse con la API para guardar el interés.");
         }
         finally
         {
             guardando = false;
         }
+    }
+
+    private void Editar(InteresFuturoDto interes)
+    {
+        formulario = new InteresFuturoDto
+        {
+            Docente = interes.Docente,
+            TerminoClave = interes.TerminoClave
+        };
+        docenteOriginal = interes.Docente;
+        terminoClaveOriginal = interes.TerminoClave;
+        editando = true;
+        mensaje = string.Empty;
     }
 
     private async Task Eliminar(int docente, string terminoClave)
@@ -165,6 +201,14 @@ else
             Logger.LogError(ex, "No fue posible retirar el interés futuro.");
             MostrarError("No fue posible comunicarse con la API para retirar el interés.");
         }
+    }
+
+    private void Limpiar()
+    {
+        formulario = new();
+        editando = false;
+        docenteOriginal = 0;
+        terminoClaveOriginal = string.Empty;
     }
 
     private void MostrarError(string texto)

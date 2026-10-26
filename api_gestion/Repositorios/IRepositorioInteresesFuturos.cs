@@ -8,5 +8,9 @@ public interface IRepositorioInteresesFuturos
     Task<InteresFuturo?> Consultar(int docente, string terminoClave);
     Task<IEnumerable<InteresFuturo>> PorDocente(int docente);
     Task<InteresFuturo?> Crear(InteresFuturo interes);
+    Task<InteresFuturo?> Actualizar(
+        int docenteOriginal,
+        string terminoClaveOriginal,
+        InteresFuturo interes);
     Task<bool> Eliminar(int docente, string terminoClave);
 }

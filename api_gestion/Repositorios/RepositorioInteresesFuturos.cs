@@ -53,6 +53,24 @@ public class RepositorioInteresesFuturos : IRepositorioInteresesFuturos
             commandType: CommandType.StoredProcedure);
     }
 
+    public async Task<InteresFuturo?> Actualizar(
+        int docenteOriginal,
+        string terminoClaveOriginal,
+        InteresFuturo interes)
+    {
+        using var conexion = CrearConexion();
+        return await conexion.QueryFirstOrDefaultAsync<InteresFuturo>(
+            "dbo.sp_actualizar_intereses_futuros",
+            new
+            {
+                Docente = docenteOriginal,
+                TerminoClave = terminoClaveOriginal,
+                NuevoDocente = interes.Docente,
+                NuevoTerminoClave = interes.TerminoClave
+            },
+            commandType: CommandType.StoredProcedure);
+    }
+
     public async Task<bool> Eliminar(int docente, string terminoClave)
     {
         using var conexion = CrearConexion();

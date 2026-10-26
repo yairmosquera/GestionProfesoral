@@ -9,5 +9,9 @@ public interface IServicioEstudioAc
     Task<EstudioAc?> Consultar(int estudio, string areaConocimiento);
     Task<IEnumerable<EstudioAc>> AreasPorEstudio(int estudio);
     Task<EstudioAc?> Crear(EstudioAcPeticion peticion);
+    Task<EstudioAc?> Actualizar(
+        int estudioOriginal,
+        string areaConocimientoOriginal,
+        EstudioAcPeticion peticion);
     Task<bool> Eliminar(int estudio, string areaConocimiento);
 }

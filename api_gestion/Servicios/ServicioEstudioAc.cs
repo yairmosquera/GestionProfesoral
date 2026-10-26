@@ -29,6 +29,20 @@ public class ServicioEstudioAc : IServicioEstudioAc
             Activo = true
         });
 
+    public Task<EstudioAc?> Actualizar(
+        int estudioOriginal,
+        string areaConocimientoOriginal,
+        EstudioAcPeticion peticion)
+        => _repositorio.Actualizar(
+            estudioOriginal,
+            areaConocimientoOriginal,
+            new EstudioAc
+            {
+                Estudio = peticion.Estudio,
+                AreaConocimiento = peticion.AreaConocimiento.Trim(),
+                Activo = true
+            });
+
     public Task<bool> Eliminar(int estudio, string areaConocimiento)
         => _repositorio.Eliminar(estudio, areaConocimiento);
 }
