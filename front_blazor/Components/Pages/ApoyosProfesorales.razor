@@ -81,8 +81,10 @@ else
                         <td>@apoyo.Institucion</td>
                         <td>@apoyo.Tipo</td>
                         <td>
-                            <button class="btn btn-warning btn-sm me-1" @onclick="() => Editar(apoyo)">Editar</button>
-                            <button class="btn btn-danger btn-sm" @onclick="() => Eliminar(apoyo.Estudios)">Retirar</button>
+                            <div class="d-flex flex-nowrap gap-2">
+                                <button class="btn btn-warning btn-sm" @onclick="() => Editar(apoyo)">Editar</button>
+                                <button class="btn btn-danger btn-sm" @onclick="() => Eliminar(apoyo.Estudios)">Retirar</button>
+                            </div>
                         </td>
                     </tr>
                 }

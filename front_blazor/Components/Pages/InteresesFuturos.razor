@@ -88,14 +88,16 @@ else
                         <td>@NombreDocente(interes.Docente)</td>
                         <td>@interes.TerminoClave</td>
                         <td>
-                            <button class="btn btn-warning btn-sm me-1"
-                                    @onclick="() => Editar(interes)">
-                                Editar
-                            </button>
-                            <button class="btn btn-danger btn-sm"
-                                    @onclick="() => Eliminar(interes.Docente, interes.TerminoClave)">
-                                Retirar
-                            </button>
+                            <div class="d-flex flex-nowrap gap-2">
+                                <button class="btn btn-warning btn-sm"
+                                        @onclick="() => Editar(interes)">
+                                    Editar
+                                </button>
+                                <button class="btn btn-danger btn-sm"
+                                        @onclick="() => Eliminar(interes.Docente, interes.TerminoClave)">
+                                    Retirar
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 }

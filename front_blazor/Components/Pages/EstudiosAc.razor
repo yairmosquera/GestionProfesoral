@@ -86,14 +86,16 @@ else
                         <td>@TituloEstudio(relacion.Estudio)</td>
                         <td>@NombreArea(relacion.AreaConocimiento)</td>
                         <td>
-                            <button class="btn btn-warning btn-sm me-1"
-                                    @onclick="() => Editar(relacion)">
-                                Editar
-                            </button>
-                            <button class="btn btn-danger btn-sm"
-                                    @onclick="() => Eliminar(relacion.Estudio, relacion.AreaConocimiento)">
-                                Retirar
-                            </button>
+                            <div class="d-flex flex-nowrap gap-2">
+                                <button class="btn btn-warning btn-sm"
+                                        @onclick="() => Editar(relacion)">
+                                    Editar
+                                </button>
+                                <button class="btn btn-danger btn-sm"
+                                        @onclick="() => Eliminar(relacion.Estudio, relacion.AreaConocimiento)">
+                                    Retirar
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 }
