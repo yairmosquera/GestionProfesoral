@@ -26,13 +26,23 @@ public class ServicioEstudioAc
         => await _http.GetFromJsonAsync<List<EstudioAcDto>>(
             $"/api/estudios-ac/estudio/{estudio}") ?? new();
 
-    public async Task<(bool Ok, string Mensaje)> Guardar(EstudioAcDto relacion)
+    public async Task<(bool Ok, string Mensaje)> Guardar(
+        EstudioAcDto relacion,
+        bool editando,
+        int estudioOriginal,
+        string areaConocimientoOriginal)
     {
-        using var respuesta = await _http.PostAsJsonAsync(
-            "/api/estudios-ac",
-            new { relacion.Estudio, relacion.AreaConocimiento });
+        var peticion = new { relacion.Estudio, relacion.AreaConocimiento };
+        using var respuesta = editando
+            ? await _http.PutAsJsonAsync(
+                $"/api/estudios-ac/{estudioOriginal}/{Uri.EscapeDataString(areaConocimientoOriginal)}",
+                peticion)
+            : await _http.PostAsJsonAsync("/api/estudios-ac", peticion);
         return await ServicioRespuestaApi.ProcesarAsync(
-            respuesta, "Área asociada al estudio correctamente.");
+            respuesta,
+            editando
+                ? "Asociación de área actualizada correctamente."
+                : "Área asociada al estudio correctamente.");
     }
 
     public async Task<(bool Ok, string Mensaje)> Eliminar(

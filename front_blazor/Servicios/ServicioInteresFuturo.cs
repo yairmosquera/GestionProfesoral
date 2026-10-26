@@ -27,13 +27,22 @@ public class ServicioInteresFuturo
             $"/api/intereses-futuros/docente/{docente}") ?? new();
 
     public async Task<(bool Ok, string Mensaje)> Guardar(
-        InteresFuturoDto interes)
+        InteresFuturoDto interes,
+        bool editando,
+        int docenteOriginal,
+        string terminoClaveOriginal)
     {
-        using var respuesta = await _http.PostAsJsonAsync(
-            "/api/intereses-futuros",
-            new { interes.Docente, interes.TerminoClave });
+        var peticion = new { interes.Docente, interes.TerminoClave };
+        using var respuesta = editando
+            ? await _http.PutAsJsonAsync(
+                $"/api/intereses-futuros/{docenteOriginal}/{Uri.EscapeDataString(terminoClaveOriginal)}",
+                peticion)
+            : await _http.PostAsJsonAsync("/api/intereses-futuros", peticion);
         return await ServicioRespuestaApi.ProcesarAsync(
-            respuesta, "Interés futuro registrado correctamente.");
+            respuesta,
+            editando
+                ? "Interés futuro actualizado correctamente."
+                : "Interés futuro registrado correctamente.");
     }
 
     public async Task<(bool Ok, string Mensaje)> Eliminar(

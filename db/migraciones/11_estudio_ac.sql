@@ -94,6 +94,78 @@ BEGIN
 END;
 GO
 
+CREATE OR ALTER PROCEDURE dbo.sp_actualizar_estudio_ac
+    @Estudio INT,
+    @AreaConocimiento VARCHAR(6),
+    @NuevoEstudio INT,
+    @NuevaAreaConocimiento VARCHAR(6)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        IF NOT EXISTS
+        (
+            SELECT 1 FROM dbo.estudio_ac WITH (UPDLOCK, HOLDLOCK)
+            WHERE estudio = @Estudio AND area_conocimiento = @AreaConocimiento
+              AND activo = 1
+        )
+            THROW 51017, 'No existe una asociación activa para actualizar.', 1;
+
+        IF @Estudio = @NuevoEstudio AND @AreaConocimiento = @NuevaAreaConocimiento
+        BEGIN
+            COMMIT TRANSACTION;
+            EXEC dbo.sp_consultar_estudio_ac @NuevoEstudio, @NuevaAreaConocimiento;
+            RETURN;
+        END;
+
+        IF EXISTS
+        (
+            SELECT 1 FROM dbo.estudio_ac WITH (UPDLOCK, HOLDLOCK)
+            WHERE estudio = @NuevoEstudio
+              AND area_conocimiento = @NuevaAreaConocimiento
+              AND activo = 1
+        )
+            THROW 51011, 'El área de destino ya está asociada al estudio.', 1;
+
+        IF EXISTS
+        (
+            SELECT 1 FROM dbo.estudio_ac WITH (UPDLOCK, HOLDLOCK)
+            WHERE estudio = @NuevoEstudio
+              AND area_conocimiento = @NuevaAreaConocimiento
+              AND activo = 0
+        )
+        BEGIN
+            UPDATE dbo.estudio_ac
+            SET activo = 0
+            WHERE estudio = @Estudio AND area_conocimiento = @AreaConocimiento;
+
+            UPDATE dbo.estudio_ac
+            SET activo = 1
+            WHERE estudio = @NuevoEstudio
+              AND area_conocimiento = @NuevaAreaConocimiento;
+        END
+        ELSE
+        BEGIN
+            UPDATE dbo.estudio_ac
+            SET estudio = @NuevoEstudio,
+                area_conocimiento = @NuevaAreaConocimiento
+            WHERE estudio = @Estudio AND area_conocimiento = @AreaConocimiento;
+        END;
+
+        COMMIT TRANSACTION;
+        EXEC dbo.sp_consultar_estudio_ac @NuevoEstudio, @NuevaAreaConocimiento;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
+END;
+GO
+
 CREATE OR ALTER PROCEDURE dbo.sp_eliminar_estudio_ac
     @Estudio INT,
     @AreaConocimiento VARCHAR(6)

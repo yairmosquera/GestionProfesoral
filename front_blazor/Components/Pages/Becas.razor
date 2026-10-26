@@ -84,8 +84,10 @@ else
                         <td>@beca.FechaInicio.ToString("dd/MM/yyyy")</td>
                         <td>@(beca.FechaFin?.ToString("dd/MM/yyyy") ?? "Vigente")</td>
                         <td>
-                            <button class="btn btn-warning btn-sm me-1" @onclick="() => Editar(beca)">Editar</button>
-                            <button class="btn btn-danger btn-sm" @onclick="() => Eliminar(beca.Estudios)">Retirar</button>
+                            <div class="d-flex flex-nowrap gap-2">
+                                <button class="btn btn-warning btn-sm" @onclick="() => Editar(beca)">Editar</button>
+                                <button class="btn btn-danger btn-sm" @onclick="() => Eliminar(beca.Estudios)">Retirar</button>
+                            </div>
                         </td>
                     </tr>
                 }

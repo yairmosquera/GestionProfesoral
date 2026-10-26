@@ -56,6 +56,26 @@ public class EstudiosAcController : ControllerBase
         }
     }
 
+    [HttpPut("{estudio:int}/{areaConocimiento}")]
+    public async Task<IActionResult> Actualizar(
+        int estudio,
+        string areaConocimiento,
+        [FromBody] EstudioAcPeticion peticion)
+    {
+        try
+        {
+            var relacion = await _servicio.Actualizar(
+                estudio, areaConocimiento, peticion);
+            return relacion is null
+                ? NotFound(new { mensaje = "No se encontró la asociación activa." })
+                : Ok(relacion);
+        }
+        catch (SqlException ex) when (EsConflicto(ex))
+        {
+            return Conflict(new { mensaje = MensajeConflicto(ex) });
+        }
+    }
+
     [HttpDelete("{estudio:int}/{areaConocimiento}")]
     public async Task<IActionResult> Eliminar(int estudio, string areaConocimiento)
     {
@@ -72,12 +92,13 @@ public class EstudiosAcController : ControllerBase
     }
 
     private static bool EsConflicto(SqlException ex)
-        => ex.Number is 51011 or 547 or 2627 or 2601;
+        => ex.Number is 51011 or 51017 or 547 or 2627 or 2601;
 
     private static string MensajeConflicto(SqlException ex)
         => ex.Number switch
         {
             51011 => "El área de conocimiento ya está asociada a ese estudio.",
+            51017 => "No se encontró la asociación activa para actualizar.",
             547 => "El estudio o el área de conocimiento seleccionada no existe.",
             2627 or 2601 => "Ya existe una asociación con esa clave compuesta.",
             _ => "Conflicto al procesar la asociación del área."
