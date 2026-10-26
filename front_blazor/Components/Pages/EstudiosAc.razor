@@ -1,0 +1,182 @@
+@page "/estudios-ac"
+@rendermode InteractiveServer
+
+@using System.Text.Json
+@using FrontGestion.Servicios
+@inject ServicioEstudioAc Servicio
+@inject ServicioEstudioRealizado ServicioEstudios
+@inject ServicioAreaConocimiento ServicioAreas
+@inject ILogger<EstudiosAc> Logger
+
+<PageTitle>Áreas por Estudio</PageTitle>
+
+<h1>Áreas de Conocimiento por Estudio</h1>
+<p class="text-muted">Asocia estudios realizados con sus áreas de conocimiento.</p>
+
+@if (!string.IsNullOrWhiteSpace(mensaje))
+{
+    <div class="alert @(esError ? "alert-danger" : "alert-success")">@mensaje</div>
+}
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h4 class="mb-3">Registrar asociación</h4>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Estudio</label>
+                <select class="form-select" @bind="formulario.Estudio">
+                    <option value="0">Seleccione un estudio</option>
+                    @foreach (var estudio in estudios)
+                    {
+                        <option value="@estudio.Id">@estudio.Titulo - @estudio.Universidad</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Área de conocimiento</label>
+                <select class="form-select" @bind="formulario.AreaConocimiento">
+                    <option value="">Seleccione un área</option>
+                    @foreach (var area in areas)
+                    {
+                        <option value="@area.Id">@area.Id - @area.Area (@area.Disciplina)</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="mt-3">
+            <button class="btn btn-primary" disabled="@guardando" @onclick="Guardar">
+                @(guardando ? "Guardando..." : "Guardar")
+            </button>
+        </div>
+    </div>
+</div>
+
+<h4 class="mb-3">Asociaciones registradas</h4>
+@if (cargando)
+{
+    <p>Cargando asociaciones...</p>
+}
+else if (relaciones.Count == 0)
+{
+    <div class="alert alert-info">No hay áreas asociadas a estudios.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered align-middle">
+            <thead class="table-light">
+                <tr><th>Estudio</th><th>Área</th><th>Acciones</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var relacion in relaciones)
+                {
+                    <tr>
+                        <td>@TituloEstudio(relacion.Estudio)</td>
+                        <td>@NombreArea(relacion.AreaConocimiento)</td>
+                        <td>
+                            <button class="btn btn-danger btn-sm"
+                                    @onclick="() => Eliminar(relacion.Estudio, relacion.AreaConocimiento)">
+                                Retirar
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<EstudioRealizadoDto> estudios = new();
+    private List<AreaConocimiento> areas = new();
+    private List<EstudioAcDto> relaciones = new();
+    private EstudioAcDto formulario = new();
+    private string mensaje = string.Empty;
+    private bool esError;
+    private bool cargando = true;
+    private bool guardando;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            estudios = await ServicioEstudios.Listar();
+            var resultadoAreas = await ServicioAreas.Listar();
+            if (!resultadoAreas.Ok || resultadoAreas.Datos is null)
+                throw new InvalidOperationException(
+                    string.Join(" ", resultadoAreas.Errores));
+            areas = resultadoAreas.Datos;
+            relaciones = await Servicio.Listar();
+        }
+        catch (Exception ex) when (
+            ex is HttpRequestException or JsonException or InvalidOperationException)
+        {
+            Logger.LogError(ex, "No fue posible cargar los datos de áreas por estudio.");
+            MostrarError("No fue posible cargar estudios, áreas o asociaciones.");
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private string TituloEstudio(int id)
+    {
+        var estudio = estudios.FirstOrDefault(x => x.Id == id);
+        return estudio is null ? id.ToString() : $"{estudio.Titulo} - {estudio.Universidad}";
+    }
+
+    private string NombreArea(string id)
+    {
+        var area = areas.FirstOrDefault(x => x.Id == id);
+        return area is null ? id : $"{area.Area} ({area.Disciplina})";
+    }
+
+    private async Task Guardar()
+    {
+        guardando = true;
+        try
+        {
+            var resultado = await Servicio.Guardar(formulario);
+            mensaje = resultado.Mensaje;
+            esError = !resultado.Ok;
+            if (resultado.Ok)
+            {
+                formulario = new();
+                relaciones = await Servicio.Listar();
+            }
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
+        {
+            Logger.LogError(ex, "No fue posible asociar el área al estudio.");
+            MostrarError("No fue posible comunicarse con la API para guardar la asociación.");
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private async Task Eliminar(int estudio, string area)
+    {
+        try
+        {
+            var resultado = await Servicio.Eliminar(estudio, area);
+            mensaje = resultado.Mensaje;
+            esError = !resultado.Ok;
+            if (resultado.Ok)
+                relaciones = await Servicio.Listar();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
+        {
+            Logger.LogError(ex, "No fue posible retirar el área del estudio.");
+            MostrarError("No fue posible comunicarse con la API para retirar la asociación.");
+        }
+    }
+
+    private void MostrarError(string texto)
+    {
+        mensaje = texto;
+        esError = true;
+    }
+}

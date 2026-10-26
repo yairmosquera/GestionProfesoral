@@ -109,6 +109,26 @@ builder.Services.AddHttpClient<ServicioDocenteDepartamento>(
         cliente.BaseAddress = new Uri(apiUrl);
     });
 
+builder.Services.AddHttpClient<ServicioInteresFuturo>(cliente =>
+{
+    cliente.BaseAddress = new Uri(apiUrl);
+});
+
+builder.Services.AddHttpClient<ServicioEstudioAc>(cliente =>
+{
+    cliente.BaseAddress = new Uri(apiUrl);
+});
+
+builder.Services.AddHttpClient<ServicioApoyoProfesoral>(cliente =>
+{
+    cliente.BaseAddress = new Uri(apiUrl);
+});
+
+builder.Services.AddHttpClient<ServicioBeca>(cliente =>
+{
+    cliente.BaseAddress = new Uri(apiUrl);
+});
+
 
 
 // =====================================================
