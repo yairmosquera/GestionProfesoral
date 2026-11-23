@@ -1,150 +1,164 @@
+
 using FrontGestion.Components;
 using FrontGestion.Servicios;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // =====================================================
-// CONFIGURACIÓN DE BLAZOR
+// CONFIGURACIÓN DE BLAZOR SERVER
 // =====================================================
 
 builder.Services
     .AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Dirección de la API
-var apiUrl = builder.Configuration["ApiUrl"]
-    ?? "http://localhost:5000";
-
 // =====================================================
-// AUTENTICACIÓN - VERSIÓN 3
+// CONFIGURACIÓN DE LA API
 // =====================================================
 
-// Cliente para autenticación. No incluye tokens por defecto.
-builder.Services.AddHttpClient("ApiGestionSesion", cliente =>
+var apiUrl = builder.Configuration["ApiUrl"];
+
+if (string.IsNullOrWhiteSpace(apiUrl))
 {
-    cliente.BaseAddress = new Uri(apiUrl);
-});
+    if (builder.Environment.IsDevelopment())
+    {
+        apiUrl = "http://localhost:5000";
+    }
+    else
+    {
+        throw new InvalidOperationException(
+            "Debe configurar ApiUrl en producción.");
+    }
+}
 
-// IMPORTANTE: la sesión debe ser Scoped para compartirse entre
-// Login.razor y los servicios del MISMO circuito Blazor Server.
-// AddHttpClient<ServicioSesionJwt> la registraría como transient.
+if (!Uri.TryCreate(
+        apiUrl,
+        UriKind.Absolute,
+        out var apiUri) ||
+    (apiUri.Scheme != Uri.UriSchemeHttp &&
+     apiUri.Scheme != Uri.UriSchemeHttps))
+{
+    throw new InvalidOperationException(
+        "ApiUrl debe ser una dirección HTTP o HTTPS válida.");
+}
+
+if (!builder.Environment.IsDevelopment() &&
+    apiUri.Scheme != Uri.UriSchemeHttps)
+{
+    throw new InvalidOperationException(
+        "En producción ApiUrl debe utilizar HTTPS.");
+}
+
+// =====================================================
+// AUTENTICACIÓN JWT - VERSIÓN 3
+// =====================================================
+
+builder.Services.AddHttpClient(
+    "ApiGestionSesion",
+    cliente =>
+    {
+        cliente.BaseAddress = apiUri;
+    });
+
+// Servicio de sesión compartido por circuito Blazor.
+// No registrar también como Transient o Singleton.
+
 builder.Services.AddScoped<ServicioSesionJwt>(sp =>
     new ServicioSesionJwt(
         sp.GetRequiredService<IHttpClientFactory>()
           .CreateClient("ApiGestionSesion")));
 
 // =====================================================
-// SERVICIOS DE LA VERSIÓN 1
+// SERVICIOS - VERSIÓN 1
 // =====================================================
 
-builder.Services.AddHttpClient<ServicioPrograma>(cliente =>
-{
-    cliente.BaseAddress = new Uri(apiUrl);
-});
+builder.Services.AddHttpClient<ServicioPrograma>(
+    cliente => cliente.BaseAddress = apiUri);
 
-builder.Services.AddHttpClient<ServicioAreaConocimiento>(cliente =>
-{
-    cliente.BaseAddress = new Uri(apiUrl);
-});
+builder.Services.AddHttpClient<ServicioAreaConocimiento>(
+    cliente => cliente.BaseAddress = apiUri);
 
-builder.Services.AddHttpClient<ServicioRed>(cliente =>
-{
-    cliente.BaseAddress = new Uri(apiUrl);
-});
+builder.Services.AddHttpClient<ServicioRed>(
+    cliente => cliente.BaseAddress = apiUri);
 
-builder.Services.AddHttpClient<ServicioLineaInvestigacion>(cliente =>
-{
-    cliente.BaseAddress = new Uri(apiUrl);
-});
+builder.Services.AddHttpClient<ServicioLineaInvestigacion>(
+    cliente => cliente.BaseAddress = apiUri);
 
-builder.Services.AddHttpClient<ServicioTerminoClave>(cliente =>
-{
-    cliente.BaseAddress = new Uri(apiUrl);
-});
+builder.Services.AddHttpClient<ServicioTerminoClave>(
+    cliente => cliente.BaseAddress = apiUri);
 
-// Cliente HTTP general usado por otras partes del frontend.
+// Cliente HTTP general.
+
 builder.Services.AddScoped(sp =>
     new HttpClient
     {
-        BaseAddress = new Uri(apiUrl)
+        BaseAddress = apiUri
     });
 
 // =====================================================
-// SERVICIOS DE LA VERSIÓN 2
+// SERVICIOS - VERSIÓN 2
 // =====================================================
 
-builder.Services.AddHttpClient<ServicioDocente>(cliente =>
-{
-    cliente.BaseAddress = new Uri(apiUrl);
-});
+builder.Services.AddHttpClient<ServicioDocente>(
+    cliente => cliente.BaseAddress = apiUri);
 
-builder.Services.AddHttpClient<ServicioEstudioRealizado>(cliente =>
-{
-    cliente.BaseAddress = new Uri(apiUrl);
-});
+builder.Services.AddHttpClient<ServicioEstudioRealizado>(
+    cliente => cliente.BaseAddress = apiUri);
 
-builder.Services.AddHttpClient<ServicioEvaluacionDocente>(cliente =>
-{
-    cliente.BaseAddress = new Uri(apiUrl);
-});
+builder.Services.AddHttpClient<ServicioEvaluacionDocente>(
+    cliente => cliente.BaseAddress = apiUri);
 
-builder.Services.AddHttpClient<ServicioExperienciaDocente>(cliente =>
-{
-    cliente.BaseAddress = new Uri(apiUrl);
-});
+builder.Services.AddHttpClient<ServicioExperienciaDocente>(
+    cliente => cliente.BaseAddress = apiUri);
 
-builder.Services.AddHttpClient<ServicioReconocimientoDocente>(cliente =>
-{
-    cliente.BaseAddress = new Uri(apiUrl);
-});
+builder.Services.AddHttpClient<ServicioReconocimientoDocente>(
+    cliente => cliente.BaseAddress = apiUri);
 
-builder.Services.AddHttpClient<ServicioRedDocente>(cliente =>
-{
-    cliente.BaseAddress = new Uri(apiUrl);
-});
+builder.Services.AddHttpClient<ServicioRedDocente>(
+    cliente => cliente.BaseAddress = apiUri);
 
-builder.Services.AddHttpClient<ServicioDocenteDepartamento>(cliente =>
-{
-    cliente.BaseAddress = new Uri(apiUrl);
-});
+builder.Services.AddHttpClient<ServicioDocenteDepartamento>(
+    cliente => cliente.BaseAddress = apiUri);
 
-builder.Services.AddHttpClient<ServicioInteresFuturo>(cliente =>
-{
-    cliente.BaseAddress = new Uri(apiUrl);
-});
+builder.Services.AddHttpClient<ServicioInteresFuturo>(
+    cliente => cliente.BaseAddress = apiUri);
 
-builder.Services.AddHttpClient<ServicioEstudioAc>(cliente =>
-{
-    cliente.BaseAddress = new Uri(apiUrl);
-});
+builder.Services.AddHttpClient<ServicioEstudioAc>(
+    cliente => cliente.BaseAddress = apiUri);
 
-builder.Services.AddHttpClient<ServicioApoyoProfesoral>(cliente =>
-{
-    cliente.BaseAddress = new Uri(apiUrl);
-});
+builder.Services.AddHttpClient<ServicioApoyoProfesoral>(
+    cliente => cliente.BaseAddress = apiUri);
 
-builder.Services.AddHttpClient<ServicioBeca>(cliente =>
-{
-    cliente.BaseAddress = new Uri(apiUrl);
-});
+builder.Services.AddHttpClient<ServicioBeca>(
+    cliente => cliente.BaseAddress = apiUri);
 
-builder.Services.AddHttpClient<ServicioDocenteMaestro>(cliente =>
-{
-    cliente.BaseAddress = new Uri(apiUrl);
-});
+builder.Services.AddHttpClient<ServicioDocenteMaestro>(
+    cliente => cliente.BaseAddress = apiUri);
 
-builder.Services.AddHttpClient<ServicioDocenteMaestroEdicion>(cliente =>
-{
-    cliente.BaseAddress = new Uri(apiUrl);
-});
+builder.Services.AddHttpClient<ServicioDocenteMaestroEdicion>(
+    cliente => cliente.BaseAddress = apiUri);
 
 // =====================================================
-// CONFIGURACIÓN DEL FRONTEND
+// CONFIGURACIÓN LOCAL
 // =====================================================
 
-builder.WebHost.UseUrls("http://localhost:5100");
+// El puerto 5100 solamente se utiliza en desarrollo.
+// En MonsterASP.NET el hosting administra el puerto.
+
+if (builder.Environment.IsDevelopment())
+{
+    builder.WebHost.UseUrls("http://localhost:5100");
+}
+
+// =====================================================
+// CONSTRUCCIÓN DE LA APLICACIÓN
+// =====================================================
 
 var app = builder.Build();
+
+// =====================================================
+// MIDDLEWARE
+// =====================================================
 
 if (!app.Environment.IsDevelopment())
 {
@@ -152,10 +166,21 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.UseHttpsRedirection();
+
 app.UseStaticFiles();
+
 app.UseAntiforgery();
+
+// =====================================================
+// COMPONENTES BLAZOR SERVER
+// =====================================================
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+// =====================================================
+// INICIAR APLICACIÓN
+// =====================================================
 
 app.Run();
