@@ -22,20 +22,29 @@ docs/spec_kit/1_constitution.md
 docs/spec_kit/versiones/0_mapa_versiones.md
 ```
 
-Después identifica la versión en la que se está trabajando.
-
-Para la versión 1 debes leer completamente:
+Después identifica la versión en la que se está trabajando y lee sus tres
+documentos canónicos:
 
 ```text
-docs/spec_kit/versiones/v1_catalogos/2_spec.md
-docs/spec_kit/versiones/v1_catalogos/3_plan.md
-docs/spec_kit/versiones/v1_catalogos/4_research.md
-docs/spec_kit/versiones/v1_catalogos/5_data_model.md
-docs/spec_kit/versiones/v1_catalogos/6_contracts.md
-docs/spec_kit/versiones/v1_catalogos/7_quickstart.md
-docs/spec_kit/versiones/v1_catalogos/8_tasks.md
-docs/spec_kit/versiones/v1_catalogos/9_checklist.md
+Versión 1:
+docs/spec_kit/versiones/001-gestion-profesoral-v1/spec.md
+docs/spec_kit/versiones/001-gestion-profesoral-v1/plan.md
+docs/spec_kit/versiones/001-gestion-profesoral-v1/tasks.md
+
+Versión 2:
+docs/spec_kit/versiones/002-gestion-profesoral-v2/spec.md
+docs/spec_kit/versiones/002-gestion-profesoral-v2/plan.md
+docs/spec_kit/versiones/002-gestion-profesoral-v2/tasks.md
+
+Versión 3:
+docs/spec_kit/versiones/003-gestion-profesoral-v3/spec.md
+docs/spec_kit/versiones/003-gestion-profesoral-v3/plan.md
+docs/spec_kit/versiones/003-gestion-profesoral-v3/tasks.md
 ```
+
+Los documentos previos de `docs/spec_kit/versiones/v1/` y `v2/` se conservan
+como antecedentes. Consúltalos cuando se necesite su detalle histórico, sin
+trasladar sus propuestas pendientes al alcance de otra versión.
 
 También revisa el código existente antes de proponer cambios.
 

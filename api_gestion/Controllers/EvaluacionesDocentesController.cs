@@ -1,6 +1,6 @@
-
 using ApiGestion.Peticiones;
 using ApiGestion.Servicios;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 
@@ -8,6 +8,7 @@ namespace ApiGestion.Controllers;
 
 [ApiController]
 [Route("api/evaluaciones-docentes")]
+[Authorize(Roles = "ADMIN,GESTOR,CONSULTA")]
 public class EvaluacionesDocentesController : ControllerBase
 {
     private readonly IServicioEvaluacionDocente _servicio;
@@ -19,6 +20,7 @@ public class EvaluacionesDocentesController : ControllerBase
     }
 
     // GET /api/evaluaciones-docentes
+    // ADMIN, GESTOR y CONSULTA
     [HttpGet]
     public async Task<IActionResult> ObtenerTodos()
     {
@@ -26,6 +28,7 @@ public class EvaluacionesDocentesController : ControllerBase
     }
 
     // GET /api/evaluaciones-docentes/1
+    // ADMIN, GESTOR y CONSULTA
     [HttpGet("{id:int}")]
     public async Task<IActionResult> ObtenerPorId(int id)
     {
@@ -40,6 +43,7 @@ public class EvaluacionesDocentesController : ControllerBase
     }
 
     // GET /api/evaluaciones-docentes/docente/123456
+    // ADMIN, GESTOR y CONSULTA
     [HttpGet("docente/{cedula:int}")]
     public async Task<IActionResult> ObtenerPorDocente(
         int cedula)
@@ -49,6 +53,8 @@ public class EvaluacionesDocentesController : ControllerBase
     }
 
     // POST /api/evaluaciones-docentes
+    // Solo ADMIN y GESTOR
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPost]
     public async Task<IActionResult> Crear(
         [FromBody] EvaluacionDocentePeticion peticion)
@@ -78,6 +84,8 @@ public class EvaluacionesDocentesController : ControllerBase
     }
 
     // PUT /api/evaluaciones-docentes/1
+    // Solo ADMIN y GESTOR
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Actualizar(
         int id,
@@ -118,6 +126,8 @@ public class EvaluacionesDocentesController : ControllerBase
     }
 
     // DELETE /api/evaluaciones-docentes/1
+    // Solo ADMIN y GESTOR
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Eliminar(int id)
     {

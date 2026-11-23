@@ -1,6 +1,6 @@
-
 using ApiGestion.Peticiones;
 using ApiGestion.Servicios;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 
@@ -8,6 +8,7 @@ namespace ApiGestion.Controllers;
 
 [ApiController]
 [Route("api/docentes")]
+[Authorize(Roles = "ADMIN,GESTOR,CONSULTA")]
 public class DocenteController : ControllerBase
 {
     private readonly IServicioDocente _servicio;
@@ -17,6 +18,7 @@ public class DocenteController : ControllerBase
         _servicio = servicio;
     }
 
+    // ADMIN, GESTOR y CONSULTA pueden ver docentes.
     [HttpGet]
     public async Task<IActionResult> ObtenerTodos()
         => Ok(await _servicio.ObtenerTodosAsync());
@@ -30,6 +32,8 @@ public class DocenteController : ControllerBase
             : Ok(docente);
     }
 
+    // Solo ADMIN y GESTOR pueden modificar información.
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPost]
     public async Task<IActionResult> Crear(
         [FromBody] DocentePeticion peticion)
@@ -59,6 +63,7 @@ public class DocenteController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPut("{cedula:int}")]
     public async Task<IActionResult> Actualizar(
         int cedula,
@@ -88,6 +93,7 @@ public class DocenteController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpDelete("{cedula:int}")]
     public async Task<IActionResult> Eliminar(int cedula)
     {

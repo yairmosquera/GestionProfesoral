@@ -1,6 +1,7 @@
 using ApiGestion.Excepciones;
 using ApiGestion.Peticiones;
 using ApiGestion.Servicios;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ApiGestion.Controllers;
@@ -10,6 +11,7 @@ namespace ApiGestion.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/areas-conocimiento")]
+[Authorize(Roles = "ADMIN,GESTOR,CONSULTA")]
 public class AreaConocimientoController : ControllerBase
 {
     private readonly IServicioAreaConocimiento _servicio;
@@ -21,6 +23,7 @@ public class AreaConocimientoController : ControllerBase
 
     /// <summary>
     /// Obtiene todas las áreas de conocimiento activas.
+    /// Disponible para ADMIN, GESTOR y CONSULTA.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> ObtenerTodas()
@@ -32,6 +35,7 @@ public class AreaConocimientoController : ControllerBase
 
     /// <summary>
     /// Obtiene un área de conocimiento por su ID.
+    /// Disponible para ADMIN, GESTOR y CONSULTA.
     /// </summary>
     [HttpGet("{id}")]
     public async Task<IActionResult> ObtenerPorId(string id)
@@ -50,7 +54,9 @@ public class AreaConocimientoController : ControllerBase
 
     /// <summary>
     /// Crea una nueva área de conocimiento.
+    /// Solo ADMIN y GESTOR.
     /// </summary>
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPost]
     public async Task<IActionResult> Crear(
         [FromBody] AreaConocimientoCrear peticion)
@@ -66,7 +72,9 @@ public class AreaConocimientoController : ControllerBase
 
     /// <summary>
     /// Reemplaza completamente un área de conocimiento.
+    /// Solo ADMIN y GESTOR.
     /// </summary>
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPut("{id}")]
     public async Task<IActionResult> Reemplazar(
         string id,
@@ -86,7 +94,9 @@ public class AreaConocimientoController : ControllerBase
 
     /// <summary>
     /// Actualiza parcialmente un área de conocimiento.
+    /// Solo ADMIN y GESTOR.
     /// </summary>
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPatch("{id}")]
     public async Task<IActionResult> Actualizar(
         string id,
@@ -106,7 +116,9 @@ public class AreaConocimientoController : ControllerBase
 
     /// <summary>
     /// Realiza el borrado lógico de un área de conocimiento.
+    /// Solo ADMIN y GESTOR.
     /// </summary>
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Eliminar(string id)
     {

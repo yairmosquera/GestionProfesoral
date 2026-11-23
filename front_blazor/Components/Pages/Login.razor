@@ -1,0 +1,180 @@
+@page "/login"
+@rendermode InteractiveServer
+@using FrontGestion.Servicios
+@inject ServicioSesionJwt Sesion
+@inject NavigationManager Navegacion
+
+<PageTitle>Iniciar sesión - Gestión Profesoral</PageTitle>
+
+<div class="gp-login-contenedor">
+    <div class="gp-login-tarjeta">
+        <div class="gp-login-encabezado">
+            <div class="gp-login-emblema">GP</div>
+            <h1>Gestión Profesoral</h1>
+            <p>Accede con tu cuenta institucional</p>
+        </div>
+
+        @if (Sesion.Autenticado)
+        {
+            <div class="alert alert-success" role="status">
+                Ya tienes una sesión activa como <strong>@Sesion.NombreUsuario</strong>.
+            </div>
+            <button type="button" class="btn btn-primary w-100" @onclick="IrADocentes">
+                Ir a docentes
+            </button>
+            <button type="button" class="btn btn-outline-secondary w-100 mt-2" @onclick="CerrarSesion">
+                Cerrar sesión
+            </button>
+        }
+        else
+        {
+            <form @onsubmit="IniciarSesion" @onsubmit:preventDefault="true">
+                <div class="mb-3">
+                    <label for="nombreUsuario" class="form-label">Nombre de usuario</label>
+                    <input id="nombreUsuario" class="form-control" type="text" autocomplete="username" maxlength="80"
+                           placeholder="Ingresa tu usuario" required @bind="nombreUsuario" @bind:event="oninput"
+                           disabled="@procesando" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="contrasena" class="form-label">Contraseña</label>
+                    <input id="contrasena" class="form-control" type="password" autocomplete="current-password"
+                           placeholder="Ingresa tu contraseña" required @bind="contrasena" @bind:event="oninput"
+                           disabled="@procesando" />
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(mensajeError))
+                {
+                    <div class="alert alert-danger" role="alert">@mensajeError</div>
+                }
+
+                <button type="submit" class="btn btn-primary w-100" disabled="@procesando">
+                    @(procesando ? "Verificando credenciales..." : "Iniciar sesión")
+                </button>
+            </form>
+        }
+        <p class="gp-login-pie">Acceso para usuarios autorizados</p>
+    </div>
+</div>
+
+<style>
+    .gp-login-contenedor {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 78vh;
+        padding: 24px 12px;
+        background: linear-gradient(145deg, #f3f6ff 0%, #eef5f9 100%);
+        border-radius: 12px;
+    }
+
+    .gp-login-tarjeta {
+        width: 100%;
+        max-width: 420px;
+        padding: 32px;
+        background: #fff;
+        border: 1px solid #e3e8f2;
+        border-radius: 16px;
+        box-shadow: 0 12px 32px rgba(30, 58, 95, 0.09);
+    }
+
+    .gp-login-encabezado {
+        text-align: center;
+        margin-bottom: 26px;
+    }
+
+    .gp-login-emblema {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 54px;
+        height: 54px;
+        margin-bottom: 12px;
+        border-radius: 15px;
+        color: #fff;
+        background: #2563eb;
+        font-weight: 800;
+        font-size: 20px;
+    }
+
+    .gp-login-encabezado h1 {
+        font-size: 1.45rem;
+        font-weight: 750;
+        color: #182d4c;
+    }
+
+    .gp-login-encabezado p {
+        color: #64748b;
+        margin-bottom: 0;
+    }
+
+    .gp-login-tarjeta .form-label {
+        font-weight: 600;
+        color: #334155;
+    }
+
+    .gp-login-tarjeta .btn-primary {
+        background-color: #2563eb;
+        border-color: #2563eb;
+    }
+
+    .gp-login-tarjeta .btn-primary:hover {
+        background-color: #1d4ed8;
+    }
+
+    .gp-login-pie {
+        text-align: center;
+        color: #64748b;
+        font-size: .8rem;
+        margin: 18px 0 0;
+    }
+</style>
+
+@code {
+    private string nombreUsuario = string.Empty;
+    private string contrasena = string.Empty;
+    private string mensajeError = string.Empty;
+    private bool procesando;
+
+    private async Task IniciarSesion()
+    {
+        if (procesando) return;
+        procesando = true;
+        mensajeError = string.Empty;
+
+        try
+        {
+            var resultado = await Sesion.IniciarSesionAsync(nombreUsuario, contrasena);
+            contrasena = string.Empty;
+
+            if (!resultado.Ok)
+            {
+                mensajeError = resultado.Mensaje;
+                return;
+            }
+
+            // Navegación interna: conserva el circuito interactivo actual.
+            Navegacion.NavigateTo("/docentes-maestro");
+        }
+        catch (Exception)
+        {
+            contrasena = string.Empty;
+            mensajeError = "Ocurrió un problema al iniciar sesión. Intenta nuevamente.";
+        }
+        finally
+        {
+            procesando = false;
+        }
+    }
+
+    private void IrADocentes()
+        => Navegacion.NavigateTo("/docentes-maestro");
+
+    private void CerrarSesion()
+    {
+        Sesion.CerrarSesion();
+        nombreUsuario = string.Empty;
+        contrasena = string.Empty;
+        mensajeError = string.Empty;
+    }
+}

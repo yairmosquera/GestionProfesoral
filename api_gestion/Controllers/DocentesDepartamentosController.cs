@@ -1,6 +1,6 @@
-
 using ApiGestion.Peticiones;
 using ApiGestion.Servicios;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 
@@ -8,6 +8,7 @@ namespace ApiGestion.Controllers;
 
 [ApiController]
 [Route("api/docentes-departamentos")]
+[Authorize(Roles = "ADMIN,GESTOR,CONSULTA")]
 public class DocentesDepartamentosController : ControllerBase
 {
     private readonly IServicioDocenteDepartamento _servicio;
@@ -70,6 +71,7 @@ public class DocentesDepartamentosController : ControllerBase
         return Ok(registros);
     }
 
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPost]
     public async Task<IActionResult> Crear(
         [FromBody] DocenteDepartamentoPeticion peticion)
@@ -115,6 +117,7 @@ public class DocentesDepartamentosController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPut("{docente:int}/{departamento:int}")]
     public async Task<IActionResult> Actualizar(
         int docente,
@@ -180,6 +183,7 @@ public class DocentesDepartamentosController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpDelete("{docente:int}/{departamento:int}")]
     public async Task<IActionResult> Eliminar(
         int docente, int departamento)

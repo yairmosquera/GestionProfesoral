@@ -1,6 +1,7 @@
 using ApiGestion.Excepciones;
 using ApiGestion.Peticiones;
 using ApiGestion.Servicios;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ApiGestion.Controllers;
@@ -10,6 +11,7 @@ namespace ApiGestion.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/terminos-clave")]
+[Authorize(Roles = "ADMIN,GESTOR,CONSULTA")]
 public class TerminoClaveController : ControllerBase
 {
     private readonly IServicioTerminoClave _servicio;
@@ -20,6 +22,7 @@ public class TerminoClaveController : ControllerBase
         _servicio = servicio;
     }
 
+    // Consulta: ADMIN, GESTOR y CONSULTA.
     [HttpGet]
     public async Task<IActionResult> ObtenerTodos()
     {
@@ -48,6 +51,8 @@ public class TerminoClaveController : ControllerBase
         }
     }
 
+    // Modificación: solo ADMIN y GESTOR.
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPost]
     public async Task<IActionResult> Crear(
         [FromBody] TerminoClaveCrear peticion)
@@ -62,6 +67,7 @@ public class TerminoClaveController : ControllerBase
         );
     }
 
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPut("{termino}")]
     public async Task<IActionResult> Reemplazar(
         string termino,
@@ -85,6 +91,7 @@ public class TerminoClaveController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPatch("{termino}")]
     public async Task<IActionResult> Actualizar(
         string termino,
@@ -108,6 +115,7 @@ public class TerminoClaveController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpDelete("{termino}")]
     public async Task<IActionResult> Eliminar(
         string termino)

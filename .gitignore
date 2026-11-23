@@ -14,3 +14,11 @@
 # Archivos del sistema
 .DS_Store
 Thumbs.db
+
+Publicacion/
+publish/
+*.user
+*.suo
+.env.*
+appsettings.Development.json
+appsettings.Production.json

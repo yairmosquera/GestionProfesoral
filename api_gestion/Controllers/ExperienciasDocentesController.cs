@@ -1,6 +1,6 @@
-
 using ApiGestion.Peticiones;
 using ApiGestion.Servicios;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 
@@ -8,6 +8,7 @@ namespace ApiGestion.Controllers;
 
 [ApiController]
 [Route("api/experiencias-docentes")]
+[Authorize(Roles = "ADMIN,GESTOR,CONSULTA")]
 public class ExperienciasDocentesController : ControllerBase
 {
     private readonly IServicioExperienciaDocente _servicio;
@@ -21,6 +22,7 @@ public class ExperienciasDocentesController : ControllerBase
         _logger = logger;
     }
 
+    // ADMIN, GESTOR y CONSULTA pueden consultar.
     [HttpGet]
     public async Task<IActionResult> Listar()
     {
@@ -69,6 +71,8 @@ public class ExperienciasDocentesController : ControllerBase
         return Ok(experiencias);
     }
 
+    // ADMIN y GESTOR pueden crear, editar y retirar.
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPost]
     public async Task<IActionResult> Crear(
         [FromBody] ExperienciaDocentePeticion peticion)
@@ -110,6 +114,7 @@ public class ExperienciasDocentesController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Actualizar(
         int id,
@@ -159,6 +164,7 @@ public class ExperienciasDocentesController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Eliminar(int id)
     {

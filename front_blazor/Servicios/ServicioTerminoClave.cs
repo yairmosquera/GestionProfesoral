@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 
 namespace FrontGestion.Servicios;
@@ -5,16 +7,13 @@ namespace FrontGestion.Servicios;
 public class TerminoClaveDto
 {
     public string Termino { get; set; } = string.Empty;
-
     public string? TerminoIngles { get; set; }
-
     public bool Activo { get; set; }
 }
 
 public class TerminoClaveCrearDto
 {
     public string Termino { get; set; } = string.Empty;
-
     public string? TerminoIngles { get; set; }
 }
 
@@ -26,150 +25,124 @@ public class TerminoClaveActualizarDto
 public class ServicioTerminoClave
 {
     private readonly HttpClient _http;
+    private readonly ServicioSesionJwt _sesion;
 
-    public ServicioTerminoClave(HttpClient http)
+    public ServicioTerminoClave(HttpClient http, ServicioSesionJwt sesion)
     {
         _http = http;
+        _sesion = sesion;
+    }
+
+    // Cada petición lleva el JWT del usuario que inició sesión.
+    // No configuramos DefaultRequestHeaders para evitar mezclar usuarios.
+    private HttpRequestMessage Preparar(HttpMethod metodo, string ruta)
+    {
+        if (!_sesion.Autenticado || string.IsNullOrWhiteSpace(_sesion.Token))
+            throw new UnauthorizedAccessException("Inicia sesión para usar Términos Clave.");
+
+        var mensaje = new HttpRequestMessage(metodo, ruta);
+        mensaje.Headers.Authorization =
+            new AuthenticationHeaderValue("Bearer", _sesion.Token);
+        return mensaje;
+    }
+
+    private static string MensajeHttp(HttpStatusCode estado)
+    {
+        return estado switch
+        {
+            HttpStatusCode.Unauthorized => "Sesión no válida o expirada. Inicia sesión nuevamente.",
+            HttpStatusCode.Forbidden => "No tienes permiso para realizar esta operación.",
+            _ => $"La API devolvió HTTP {(int)estado}."
+        };
     }
 
     public async Task<List<TerminoClaveDto>> ObtenerTodosAsync()
     {
-        try
-        {
-            return await _http
-                .GetFromJsonAsync<List<TerminoClaveDto>>(
-                    "/api/terminos-clave"
-                )
-                ?? new List<TerminoClaveDto>();
-        }
-        catch
-        {
-            return new List<TerminoClaveDto>();
-        }
+        using var solicitud = Preparar(HttpMethod.Get, "/api/terminos-clave");
+        using var respuesta = await _http.SendAsync(solicitud);
+        if (!respuesta.IsSuccessStatusCode)
+            throw new HttpRequestException(
+                $"No fue posible cargar los términos clave: {MensajeHttp(respuesta.StatusCode)}",
+                null, respuesta.StatusCode);
+
+        return await respuesta.Content.ReadFromJsonAsync<List<TerminoClaveDto>>()
+            ?? new List<TerminoClaveDto>();
     }
 
-    public async Task<TerminoClaveDto?> ObtenerPorTerminoAsync(
-        string termino)
+    public async Task<TerminoClaveDto?> ObtenerPorTerminoAsync(string termino)
     {
-        try
-        {
-            var ruta =
-                $"/api/terminos-clave/{Uri.EscapeDataString(termino)}";
-
-            var respuesta =
-                await _http.GetAsync(ruta);
-
-            if (!respuesta.IsSuccessStatusCode)
-            {
-                return null;
-            }
-
-            return await respuesta.Content
-                .ReadFromJsonAsync<TerminoClaveDto>();
-        }
-        catch
-        {
+        var ruta = $"/api/terminos-clave/{Uri.EscapeDataString(termino)}";
+        using var solicitud = Preparar(HttpMethod.Get, ruta);
+        using var respuesta = await _http.SendAsync(solicitud);
+        if (respuesta.StatusCode == HttpStatusCode.NotFound)
             return null;
-        }
+        if (!respuesta.IsSuccessStatusCode)
+            throw new HttpRequestException(
+                $"No fue posible consultar el término: {MensajeHttp(respuesta.StatusCode)}",
+                null, respuesta.StatusCode);
+
+        return await respuesta.Content.ReadFromJsonAsync<TerminoClaveDto>();
     }
 
-    public async Task<Resultado<TerminoClaveDto>> CrearAsync(
-        TerminoClaveCrearDto peticion)
+    public Task<Resultado<TerminoClaveDto>> CrearAsync(TerminoClaveCrearDto peticion)
     {
+        return EnviarConDtoAsync(HttpMethod.Post, "/api/terminos-clave", peticion);
+    }
+
+    public Task<Resultado<TerminoClaveDto>> ActualizarAsync(
+        string termino, TerminoClaveActualizarDto peticion)
+    {
+        var ruta = $"/api/terminos-clave/{Uri.EscapeDataString(termino)}";
+        return EnviarConDtoAsync(HttpMethod.Put, ruta, peticion);
+    }
+
+    private async Task<Resultado<TerminoClaveDto>> EnviarConDtoAsync(
+        HttpMethod metodo, string ruta, object cuerpo)
+    {
+        if (!_sesion.Autenticado || string.IsNullOrWhiteSpace(_sesion.Token))
+            return Resultado<TerminoClaveDto>.Mal("Debes iniciar sesión.");
+        if (!_sesion.TieneRol("ADMIN", "GESTOR"))
+            return Resultado<TerminoClaveDto>.Mal("No tienes permiso para modificar términos clave.");
+
         try
         {
-            var respuesta =
-                await _http.PostAsJsonAsync(
-                    "/api/terminos-clave",
-                    peticion
-                );
-
+            using var solicitud = Preparar(metodo, ruta);
+            solicitud.Content = JsonContent.Create(cuerpo);
+            using var respuesta = await _http.SendAsync(solicitud);
             if (!respuesta.IsSuccessStatusCode)
-            {
                 return Resultado<TerminoClaveDto>.Mal(
-                    $"No fue posible crear el término clave. Código: {(int)respuesta.StatusCode}"
-                );
-            }
+                    $"No fue posible completar la operación. {MensajeHttp(respuesta.StatusCode)}");
 
-            var termino =
-                await respuesta.Content
-                    .ReadFromJsonAsync<TerminoClaveDto>();
-
-            return Resultado<TerminoClaveDto>.Bien(
-                termino!
-            );
+            var datos = await respuesta.Content.ReadFromJsonAsync<TerminoClaveDto>();
+            return datos is null
+                ? Resultado<TerminoClaveDto>.Mal("La API no devolvió el término clave.")
+                : Resultado<TerminoClaveDto>.Bien(datos);
         }
-        catch
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            return Resultado<TerminoClaveDto>.Mal(
-                "No fue posible comunicarse con la API."
-            );
+            return Resultado<TerminoClaveDto>.Mal($"No fue posible comunicarse con la API: {ex.Message}");
         }
     }
 
-    public async Task<Resultado<TerminoClaveDto>> ActualizarAsync(
-        string termino,
-        TerminoClaveActualizarDto peticion)
+    public async Task<Resultado<bool>> EliminarAsync(string termino)
     {
+        if (!_sesion.Autenticado || string.IsNullOrWhiteSpace(_sesion.Token))
+            return Resultado<bool>.Mal("Debes iniciar sesión.");
+        if (!_sesion.TieneRol("ADMIN", "GESTOR"))
+            return Resultado<bool>.Mal("No tienes permiso para retirar términos clave.");
+
         try
         {
-            var ruta =
-                $"/api/terminos-clave/{Uri.EscapeDataString(termino)}";
-
-            var respuesta =
-                await _http.PutAsJsonAsync(
-                    ruta,
-                    peticion
-                );
-
-            if (!respuesta.IsSuccessStatusCode)
-            {
-                return Resultado<TerminoClaveDto>.Mal(
-                    $"No fue posible actualizar el término clave. Código: {(int)respuesta.StatusCode}"
-                );
-            }
-
-            var terminoActualizado =
-                await respuesta.Content
-                    .ReadFromJsonAsync<TerminoClaveDto>();
-
-            return Resultado<TerminoClaveDto>.Bien(
-                terminoActualizado!
-            );
+            var ruta = $"/api/terminos-clave/{Uri.EscapeDataString(termino)}";
+            using var solicitud = Preparar(HttpMethod.Delete, ruta);
+            using var respuesta = await _http.SendAsync(solicitud);
+            return respuesta.IsSuccessStatusCode
+                ? Resultado<bool>.Bien(true)
+                : Resultado<bool>.Mal($"No fue posible retirar el término clave. {MensajeHttp(respuesta.StatusCode)}");
         }
-        catch
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            return Resultado<TerminoClaveDto>.Mal(
-                "No fue posible comunicarse con la API."
-            );
-        }
-    }
-
-    public async Task<Resultado<bool>> EliminarAsync(
-        string termino)
-    {
-        try
-        {
-            var ruta =
-                $"/api/terminos-clave/{Uri.EscapeDataString(termino)}";
-
-            var respuesta =
-                await _http.DeleteAsync(ruta);
-
-            if (!respuesta.IsSuccessStatusCode)
-            {
-                return Resultado<bool>.Mal(
-                    $"No fue posible retirar el término clave. Código: {(int)respuesta.StatusCode}"
-                );
-            }
-
-            return Resultado<bool>.Bien(true);
-        }
-        catch
-        {
-            return Resultado<bool>.Mal(
-                "No fue posible comunicarse con la API."
-            );
+            return Resultado<bool>.Mal($"No fue posible comunicarse con la API: {ex.Message}");
         }
     }
 }

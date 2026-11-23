@@ -1,17 +1,86 @@
 @inherits LayoutComponentBase
+@using FrontGestion.Servicios
+@inject ServicioSesionJwt Sesion
+@inject NavigationManager Navegacion
 
-<div class="page">
-    <aside class="sidebar">
-        <NavMenu />
-    </aside>
+@if (EsPaginaLogin)
+{
+    @Body
+}
+else if (Sesion.Autenticado)
+{
+    <div class="page">
 
-    <main>
-        <div class="top-row">
-            <span>Sistema de Gestión Profesoral</span>
-        </div>
+        <aside class="sidebar">
+            <NavMenu />
+        </aside>
 
-        <article class="content">
-            @Body
-        </article>
-    </main>
-</div>
+        <main>
+            <div class="top-row" style="display:flex;
+                justify-content:space-between;
+                align-items:center;
+                gap:15px;">
+
+                <span>
+                    Sistema de Gestión Profesoral
+                </span>
+
+                <button type="button" class="btn btn-danger btn-sm" @onclick="CerrarSesion" style="padding:8px 15px;
+                    border:0;
+                    border-radius:6px;
+                    background:#dc3545;
+                    color:white;
+                    cursor:pointer;">
+                    Cerrar sesión
+                </button>
+
+            </div>
+
+            <article class="content">
+                @Body
+            </article>
+        </main>
+
+    </div>
+}
+else
+{
+    <p>Redirigiendo al inicio de sesión...</p>
+}
+
+@code {
+    private bool EsPaginaLogin
+    {
+        get
+        {
+            var ruta = Navegacion.ToBaseRelativePath(
+                Navegacion.Uri);
+
+            ruta = ruta.Split('?', '#')[0].Trim('/');
+
+            return string.Equals(
+                ruta,
+                "login",
+                StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!Sesion.Autenticado && !EsPaginaLogin)
+        {
+            Navegacion.NavigateTo(
+                "/login",
+                replace: true);
+        }
+    }
+
+    private void CerrarSesion()
+    {
+        Sesion.CerrarSesion();
+
+        Navegacion.NavigateTo(
+            "/login",
+            replace: true);
+    }
+}

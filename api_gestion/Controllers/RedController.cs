@@ -1,6 +1,7 @@
 using ApiGestion.Excepciones;
 using ApiGestion.Peticiones;
 using ApiGestion.Servicios;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ApiGestion.Controllers;
@@ -10,6 +11,7 @@ namespace ApiGestion.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/redes")]
+[Authorize(Roles = "ADMIN,GESTOR,CONSULTA")]
 public class RedController : ControllerBase
 {
     private readonly IServicioRed _servicio;
@@ -51,6 +53,7 @@ public class RedController : ControllerBase
     /// <summary>
     /// Crea una nueva red.
     /// </summary>
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPost]
     public async Task<IActionResult> Crear(
         [FromBody] RedCrear peticion)
@@ -67,6 +70,7 @@ public class RedController : ControllerBase
     /// <summary>
     /// Reemplaza completamente una red.
     /// </summary>
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Reemplazar(
         int id,
@@ -90,6 +94,7 @@ public class RedController : ControllerBase
     /// <summary>
     /// Actualiza parcialmente una red.
     /// </summary>
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPatch("{id:int}")]
     public async Task<IActionResult> Actualizar(
         int id,
@@ -113,6 +118,7 @@ public class RedController : ControllerBase
     /// <summary>
     /// Realiza el borrado lógico de una red.
     /// </summary>
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Eliminar(int id)
     {

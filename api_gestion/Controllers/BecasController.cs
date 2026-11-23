@@ -1,5 +1,6 @@
 using ApiGestion.Peticiones;
 using ApiGestion.Servicios;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 
@@ -7,6 +8,7 @@ namespace ApiGestion.Controllers;
 
 [ApiController]
 [Route("api/becas")]
+[Authorize(Roles = "ADMIN,GESTOR,CONSULTA")]
 public class BecasController : ControllerBase
 {
     private readonly IServicioBeca _servicio;
@@ -16,6 +18,7 @@ public class BecasController : ControllerBase
         _servicio = servicio;
     }
 
+    // ADMIN, GESTOR y CONSULTA pueden consultar.
     [HttpGet]
     public async Task<IActionResult> Listar()
         => Ok(await _servicio.Listar());
@@ -29,6 +32,8 @@ public class BecasController : ControllerBase
             : Ok(beca);
     }
 
+    // Solo ADMIN y GESTOR pueden crear, modificar o retirar.
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPost]
     public async Task<IActionResult> Crear([FromBody] BecaPeticion peticion)
     {
@@ -45,6 +50,7 @@ public class BecasController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPut("{estudios:int}")]
     public async Task<IActionResult> Actualizar(
         int estudios,
@@ -66,6 +72,7 @@ public class BecasController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpDelete("{estudios:int}")]
     public async Task<IActionResult> Eliminar(int estudios)
     {
