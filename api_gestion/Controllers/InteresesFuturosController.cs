@@ -1,5 +1,6 @@
 using ApiGestion.Peticiones;
 using ApiGestion.Servicios;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 
@@ -7,6 +8,7 @@ namespace ApiGestion.Controllers;
 
 [ApiController]
 [Route("api/intereses-futuros")]
+[Authorize(Roles = "ADMIN,GESTOR,CONSULTA")]
 public class InteresesFuturosController : ControllerBase
 {
     private readonly IServicioInteresesFuturos _servicio;
@@ -16,6 +18,7 @@ public class InteresesFuturosController : ControllerBase
         _servicio = servicio;
     }
 
+    // ADMIN, GESTOR y CONSULTA pueden consultar intereses futuros.
     [HttpGet]
     public async Task<IActionResult> Listar()
         => Ok(await _servicio.Listar());
@@ -33,6 +36,8 @@ public class InteresesFuturosController : ControllerBase
     public async Task<IActionResult> PorDocente(int docente)
         => Ok(await _servicio.PorDocente(docente));
 
+    // Solo ADMIN y GESTOR pueden registrar, actualizar y retirar.
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPost]
     public async Task<IActionResult> Crear([FromBody] InteresFuturoPeticion peticion)
     {
@@ -52,6 +57,7 @@ public class InteresesFuturosController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPut("{docente:int}/{terminoClave}")]
     public async Task<IActionResult> Actualizar(
         int docente,
@@ -71,6 +77,7 @@ public class InteresesFuturosController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpDelete("{docente:int}/{terminoClave}")]
     public async Task<IActionResult> Eliminar(int docente, string terminoClave)
     {

@@ -1,4 +1,5 @@
-
+using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -18,28 +19,60 @@ public class DocenteDepartamentoDto
 public class ServicioDocenteDepartamento
 {
     private readonly HttpClient _http;
+    private readonly ServicioSesionJwt _sesion;
 
-    public ServicioDocenteDepartamento(HttpClient http)
+    public ServicioDocenteDepartamento(HttpClient http, ServicioSesionJwt sesion)
     {
         _http = http;
+        _sesion = sesion;
     }
 
-    public async Task<List<DocenteDepartamentoDto>> Listar()
+    private HttpRequestMessage CrearSolicitud(HttpMethod metodo, string ruta)
     {
-        return await _http.GetFromJsonAsync<List<DocenteDepartamentoDto>>(
-            "api/docentes-departamentos") ?? new();
+        if (!_sesion.Autenticado || string.IsNullOrWhiteSpace(_sesion.Token))
+            throw new UnauthorizedAccessException(
+                "Debes iniciar sesión para acceder a Departamentos de Docentes.");
+
+        var solicitud = new HttpRequestMessage(metodo, ruta);
+        solicitud.Headers.Authorization =
+            new AuthenticationHeaderValue("Bearer", _sesion.Token);
+        return solicitud;
     }
 
-    public async Task<List<DocenteDepartamentoDto>> PorDocente(int cedula)
+    private async Task<List<DocenteDepartamentoDto>> ConsultarAsync(string ruta)
     {
-        return await _http.GetFromJsonAsync<List<DocenteDepartamentoDto>>(
-            $"api/docentes-departamentos/docente/{cedula}") ?? new();
+        using var solicitud = CrearSolicitud(HttpMethod.Get, ruta);
+        using var respuesta = await _http.SendAsync(solicitud);
+
+        if (respuesta.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException(
+                "La API rechazó la sesión (401). Inicia sesión nuevamente.");
+
+        if (respuesta.StatusCode == HttpStatusCode.Forbidden)
+            throw new UnauthorizedAccessException(
+                "Tu usuario no tiene permisos para consultar departamentos de docentes (403).");
+
+        respuesta.EnsureSuccessStatusCode();
+        return await respuesta.Content.ReadFromJsonAsync<List<DocenteDepartamentoDto>>()
+            ?? new List<DocenteDepartamentoDto>();
     }
+
+    public Task<List<DocenteDepartamentoDto>> Listar()
+        => ConsultarAsync("api/docentes-departamentos");
+
+    public Task<List<DocenteDepartamentoDto>> PorDocente(int cedula)
+        => ConsultarAsync($"api/docentes-departamentos/docente/{cedula}");
 
     public async Task<(bool Ok, string Mensaje)> Guardar(
         DocenteDepartamentoDto relacion,
         bool editando)
     {
+        if (!_sesion.Autenticado || string.IsNullOrWhiteSpace(_sesion.Token))
+            return (false, "Debes iniciar sesión para modificar departamentos de docentes.");
+
+        if (!_sesion.TieneRol("ADMIN", "GESTOR"))
+            return (false, "No tienes permisos para modificar departamentos de docentes.");
+
         var peticion = new
         {
             relacion.Docente,
@@ -50,14 +83,15 @@ public class ServicioDocenteDepartamento
             relacion.FechaSalida
         };
 
-        using var respuesta = editando
-            ? await _http.PutAsJsonAsync(
-                $"api/docentes-departamentos/{relacion.Docente}/{relacion.Departamento}",
-                peticion)
-            : await _http.PostAsJsonAsync(
-                "api/docentes-departamentos",
-                peticion);
+        var ruta = editando
+            ? $"api/docentes-departamentos/{relacion.Docente}/{relacion.Departamento}"
+            : "api/docentes-departamentos";
 
+        using var solicitud = CrearSolicitud(
+            editando ? HttpMethod.Put : HttpMethod.Post, ruta);
+        solicitud.Content = JsonContent.Create(peticion);
+
+        using var respuesta = await _http.SendAsync(solicitud);
         return await LeerResultado(
             respuesta,
             editando
@@ -69,12 +103,17 @@ public class ServicioDocenteDepartamento
         int docente,
         int departamento)
     {
-        using var respuesta = await _http.DeleteAsync(
-            $"api/docentes-departamentos/{docente}/{departamento}");
+        if (!_sesion.Autenticado || string.IsNullOrWhiteSpace(_sesion.Token))
+            return (false, "Debes iniciar sesión para retirar departamentos de docentes.");
 
-        return await LeerResultado(
-            respuesta,
-            "Asociación retirada correctamente.");
+        if (!_sesion.TieneRol("ADMIN", "GESTOR"))
+            return (false, "No tienes permisos para retirar departamentos de docentes.");
+
+        using var solicitud = CrearSolicitud(
+            HttpMethod.Delete,
+            $"api/docentes-departamentos/{docente}/{departamento}");
+        using var respuesta = await _http.SendAsync(solicitud);
+        return await LeerResultado(respuesta, "Asociación retirada correctamente.");
     }
 
     private static async Task<(bool Ok, string Mensaje)> LeerResultado(
@@ -83,6 +122,12 @@ public class ServicioDocenteDepartamento
     {
         if (respuesta.IsSuccessStatusCode)
             return (true, mensajeExito);
+
+        if (respuesta.StatusCode == HttpStatusCode.Unauthorized)
+            return (false, "La API rechazó la sesión (401). Inicia sesión nuevamente.");
+
+        if (respuesta.StatusCode == HttpStatusCode.Forbidden)
+            return (false, "Tu usuario no tiene permisos para esta operación (403).");
 
         string contenido = await respuesta.Content.ReadAsStringAsync();
 
@@ -98,7 +143,6 @@ public class ServicioDocenteDepartamento
                 errores.ValueKind == JsonValueKind.Object)
             {
                 var mensajes = new List<string>();
-
                 foreach (var campo in errores.EnumerateObject())
                 {
                     if (campo.Value.ValueKind != JsonValueKind.Array)

@@ -1,0 +1,1717 @@
+@page "/docentes-maestro"
+@rendermode InteractiveServer
+@using FrontGestion.Servicios
+@using System.ComponentModel.DataAnnotations
+@inject ServicioDocenteMaestro ServicioMaestro
+@inject ServicioDocente ServicioDocentes
+@inject ServicioDocenteMaestroEdicion ServicioEdicion
+@inject ServicioEstudioRealizado ServicioEstudios
+@inject ServicioEvaluacionDocente ServicioEvaluaciones
+@inject ServicioExperienciaDocente ServicioExperiencias
+@inject ServicioReconocimientoDocente ServicioReconocimientos
+@inject ServicioLineaInvestigacion ServicioLineas
+@inject ServicioSesionJwt Sesion
+<PageTitle>Docentes - Gestión Profesoral</PageTitle>
+<div class="maestro-contenedor">
+    <div class="maestro-encabezado">
+        <div>
+            <h1>@(editando ? "Editar docente" : "Registro Maestro de Docentes")</h1>
+            <p class="text-muted mb-0">
+                Registre la información personal, académica
+                y profesional del docente.
+            </p>
+        </div>
+        <span class="badge bg-primary">Versión 3 · @((Sesion.Autenticado ? Sesion.NombreUsuario : "Sin sesión"))</span>
+    </div>
+    @if (!string.IsNullOrWhiteSpace(mensaje))
+    {
+        <div class="alert @(esError ? "alert-danger" : "alert-success") mt-3" role="alert">
+            @mensaje
+        </div>
+    }
+    @if (editando)
+    {
+        <div class="alert alert-info">
+            Editando al docente <strong>@formulario.Docente.Cedula</strong>.
+            Puede actualizar datos personales, estudios, evaluaciones,
+            experiencias y reconocimientos. Los cambios se guardan juntos
+            al pulsar <strong>Actualizar docente y detalles</strong>.
+        </div>
+    }
+    @if (cargandoDetallesEdicion)
+    {
+        <div class="alert alert-secondary">Cargando datos académicos del docente...</div>
+    }
+
+    @if (!Sesion.Autenticado)
+    {
+        <div class="alert alert-warning" role="alert">
+            Debes iniciar sesión para consultar docentes.
+            <a href="/login" class="alert-link">Ir al inicio de sesión</a>
+        </div>
+    }
+    else if (!PuedeModificar)
+    {
+        <div class="alert alert-info" role="status">
+            Tu cuenta tiene permisos de consulta. Puedes buscar y revisar el listado,
+            pero no registrar, editar ni retirar docentes.
+        </div>
+    }
+    @if (PuedeModificar)
+    {
+    <!-- NAVEGACIÓN POR PESTAÑAS -->
+    <div class="maestro-navegacion">
+        <button type="button" class="pestana @(pestana == "datos" ? "activa" : "")" disabled="@guardando"
+                @onclick='() => CambiarPestana("datos")'>
+            👤 Datos personales
+        </button>
+        <button type="button" class="pestana @(pestana == "estudios" ? "activa" : "")"
+                @onclick='() => CambiarPestana("estudios")'
+                disabled="@(guardando || cargandoDetallesEdicion)">
+            🎓 Estudios
+            <span class="contador">@formulario.Estudios.Count</span>
+        </button>
+        <button type="button" class="pestana @(pestana == "evaluaciones" ? "activa" : "")"
+                @onclick='() => CambiarPestana("evaluaciones")'
+                disabled="@(guardando || cargandoDetallesEdicion)">
+            📋 Evaluaciones
+            <span class="contador">@formulario.Evaluaciones.Count</span>
+        </button>
+        <button type="button" class="pestana @(pestana == "experiencias" ? "activa" : "")"
+                @onclick='() => CambiarPestana("experiencias")'
+                disabled="@(guardando || cargandoDetallesEdicion)">
+            💼 Experiencia
+            <span class="contador">@formulario.Experiencias.Count</span>
+        </button>
+        <button type="button" class="pestana @(pestana == "reconocimientos" ? "activa" : "")"
+                @onclick='() => CambiarPestana("reconocimientos")'
+                disabled="@(guardando || cargandoDetallesEdicion)">
+            🏆 Reconocimientos
+            <span class="contador">@formulario.Reconocimientos.Count</span>
+        </button>
+    </div>
+    <!-- PESTAÑA 1: DATOS PERSONALES -->
+    @if (pestana == "datos")
+    {
+        <div class="card maestro-card">
+            <div class="card-header">
+                <h4>1. Información del docente</h4>
+                <small>Complete los datos personales y profesionales.</small>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Cédula *</label>
+                        <input type="number" class="form-control" @bind="formulario.Docente.Cedula" disabled="@editando" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Nombres *</label>
+                        <input class="form-control" maxlength="60" @bind="formulario.Docente.Nombres" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Apellidos *</label>
+                        <input class="form-control" maxlength="60" @bind="formulario.Docente.Apellidos" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Género *</label>
+                        <select class="form-select" @bind="formulario.Docente.Genero">
+                            <option value="">Seleccione</option>
+                            <option value="Femenino">Femenino</option>
+                            <option value="Masculino">Masculino</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Cargo *</label>
+                        <input class="form-control" maxlength="30" @bind="formulario.Docente.Cargo" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Fecha de nacimiento *</label>
+                        <input type="date" class="form-control" @bind="formulario.Docente.FechaNacimiento"
+                               @bind:format="yyyy-MM-dd" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Correo electrónico *</label>
+                        <input type="email" class="form-control" maxlength="70" @bind="formulario.Docente.Correo" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Teléfono *</label>
+                        <input class="form-control" maxlength="20" @bind="formulario.Docente.Telefono" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">URL CvLAC *</label>
+                        <input type="url" class="form-control" maxlength="128" @bind="formulario.Docente.UrlCvlac" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Escalafón *</label>
+                        <input class="form-control" maxlength="45" @bind="formulario.Docente.Escalafon" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Categoría Minciencias</label>
+                        <input class="form-control" maxlength="45" @bind="formulario.Docente.CatMinciencia" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Convocatoria Minciencias *</label>
+                        <input class="form-control" maxlength="45" @bind="formulario.Docente.ConvMinciencia" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Nacionalidad *</label>
+                        <input class="form-control" maxlength="45" @bind="formulario.Docente.Nacionalidaad" />
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">
+                            Línea de investigación principal
+                        </label>
+                        <select class="form-select" @bind="formulario.Docente.LineaInvestigacionPrincipal">
+                            <option value="">(Ninguna)</option>
+                            @foreach (var linea in lineas)
+                            {
+                                <option value="@linea.Id">
+                                    @linea.Nombre
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Perfil profesional *</label>
+                        <textarea class="form-control" rows="3" @bind="formulario.Docente.Perfil"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    <!-- PESTAÑA 2: ESTUDIOS -->
+    @if (pestana == "estudios")
+    {
+        <div class="card maestro-card">
+            <div class="card-header">
+                <h4>2. Estudios realizados</h4>
+                <small>Debe agregar como mínimo un estudio.</small>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Título obtenido *</label>
+                        <input class="form-control" maxlength="45" @bind="nuevoEstudio.Titulo" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Universidad *</label>
+                        <input class="form-control" maxlength="50" @bind="nuevoEstudio.Universidad" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Fecha de grado *</label>
+                        <input type="date" class="form-control" @bind="nuevoEstudio.Fecha" @bind:format="yyyy-MM-dd" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Tipo de estudio *</label>
+                        <select class="form-select" @bind="nuevoEstudio.Tipo">
+                            <option value="">Seleccione</option>
+                            <option value="Pregrado">Pregrado</option>
+                            <option value="Especialización">Especialización</option>
+                            <option value="Maestría">Maestría</option>
+                            <option value="Doctorado">Doctorado</option>
+                            <option value="Posdoctorado">Posdoctorado</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Metodología *</label>
+                        <select class="form-select" @bind="nuevoEstudio.Metodologia">
+                            <option value="">Seleccione</option>
+                            <option value="Presencial">Presencial</option>
+                            <option value="Virtual">Virtual</option>
+                            <option value="Distancia">Distancia</option>
+                            <option value="Híbrida">Híbrida</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Ciudad *</label>
+                        <input class="form-control" maxlength="45" @bind="nuevoEstudio.Ciudad" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">País *</label>
+                        <input class="form-control" maxlength="45" @bind="nuevoEstudio.Pais" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Institución acreditada</label>
+                        <select class="form-select" @bind="nuevoEstudio.InsAcreditada">
+                            <option value="0">No</option>
+                            <option value="1">Sí</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Perfil del egresado *</label>
+                        <textarea class="form-control" rows="2" @bind="nuevoEstudio.PerfilEgresado"></textarea>
+                    </div>
+                    <div class="col-12">
+                        <button type="button" class="btn btn-agregar-detalle" disabled="@guardando" @onclick="AgregarEstudio">
+                            @(editandoEstudio is not null ? "Guardar cambios" : "+ Agregar estudio")
+                        </button>
+                        @if (editandoEstudio is not null)
+                        {
+                            <button type="button" class="btn btn-cancelar ms-2" disabled="@guardando"
+                                    @onclick="CancelarEdicionEstudio">Cancelar edición</button>
+                        }
+                    </div>
+                </div>
+                @if (formulario.Estudios.Count > 0)
+                {
+                    <div class="table-responsive mt-4">
+                        <table class="table table-striped table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Título</th>
+                                    <th>Universidad</th>
+                                    <th>Tipo</th>
+                                    <th>Fecha</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var estudio in formulario.Estudios)
+                                {
+                                    <tr>
+                                        <td>@estudio.Titulo</td>
+                                        <td>@estudio.Universidad</td>
+                                        <td>@estudio.Tipo</td>
+                                        <td>@estudio.Fecha?.ToString("dd/MM/yyyy")</td>
+                                        <td>
+                                            @if (editando)
+                                            {
+                                                <button type="button" class="btn btn-editar-detalle btn-sm me-1"
+                                                        disabled="@guardando" @onclick="() => SeleccionarEstudio(estudio)">Editar</button>
+                                            }
+                                            <button type="button" class="btn btn-quitar-detalle btn-sm" disabled="@guardando"
+                                                    @onclick="() => QuitarEstudio(estudio)">
+                                                Quitar
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted mt-3">
+                        Todavía no se han agregado estudios.
+                    </p>
+                }
+            </div>
+        </div>
+    }
+    <!-- PESTAÑA 3: EVALUACIONES -->
+    @if (pestana == "evaluaciones")
+    {
+        <div class="card maestro-card">
+            <div class="card-header">
+                <h4>3. Evaluaciones docentes</h4>
+                <small>Debe agregar como mínimo una evaluación.</small>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Semestre académico *</label>
+                        <input class="form-control" maxlength="45" placeholder="Ejemplo: 2026-2"
+                               @bind="nuevaEvaluacion.Semestre" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Calificación *</label>
+                        <input type="number" min="0" max="5" step="0.1" class="form-control"
+                               @bind="nuevaEvaluacion.Calificacion" />
+                    </div>
+                    <div class="col-12">
+                        <button type="button" class="btn btn-agregar-detalle" disabled="@guardando" @onclick="AgregarEvaluacion">
+                            @(editandoEvaluacion is not null ? "Guardar cambios" : "+ Agregar evaluación")
+                        </button>
+                        @if (editandoEvaluacion is not null)
+                        {
+                            <button type="button" class="btn btn-cancelar ms-2" disabled="@guardando"
+                                    @onclick="CancelarEdicionEvaluacion">Cancelar edición</button>
+                        }
+                    </div>
+                </div>
+                @if (formulario.Evaluaciones.Count > 0)
+                {
+                    <div class="table-responsive mt-4">
+                        <table class="table table-striped table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Semestre</th>
+                                    <th>Calificación</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var evaluacion in formulario.Evaluaciones)
+                                {
+                                    <tr>
+                                        <td>@evaluacion.Semestre</td>
+                                        <td>@evaluacion.Calificacion</td>
+                                        <td>
+                                            @if (editando)
+                                            {
+                                                <button type="button" class="btn btn-editar-detalle btn-sm me-1"
+                                                        disabled="@guardando" @onclick="() => SeleccionarEvaluacion(evaluacion)">Editar</button>
+                                            }
+                                            <button type="button" class="btn btn-quitar-detalle btn-sm" disabled="@guardando"
+                                                    @onclick="() => QuitarEvaluacion(evaluacion)">
+                                                Quitar
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted mt-3">
+                        Todavía no se han agregado evaluaciones.
+                    </p>
+                }
+            </div>
+        </div>
+    }
+    <!-- PESTAÑA 4: EXPERIENCIA -->
+    @if (pestana == "experiencias")
+    {
+        <div class="card maestro-card">
+            <div class="card-header">
+                <h4>4. Experiencia profesional</h4>
+                <small>Debe agregar como mínimo una experiencia.</small>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Nombre del cargo *</label>
+                        <input class="form-control" maxlength="45" @bind="nuevaExperiencia.NombreCargo" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Institución *</label>
+                        <input class="form-control" maxlength="45" @bind="nuevaExperiencia.Institucion" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Tipo de experiencia *</label>
+                        <input class="form-control" maxlength="45" @bind="nuevaExperiencia.Tipo" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Fecha de inicio *</label>
+                        <input type="date" class="form-control" @bind="nuevaExperiencia.FechaInicio"
+                               @bind:format="yyyy-MM-dd" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Fecha de finalización</label>
+                        <input type="date" class="form-control" @bind="nuevaExperiencia.FechaFin"
+                               @bind:format="yyyy-MM-dd" />
+                        <small class="text-muted">
+                            Déjela vacía si continúa trabajando.
+                        </small>
+                    </div>
+                    <div class="col-12">
+                        <button type="button" class="btn btn-agregar-detalle" disabled="@guardando" @onclick="AgregarExperiencia">
+                            @(editandoExperiencia is not null ? "Guardar cambios" : "+ Agregar experiencia")
+                        </button>
+                        @if (editandoExperiencia is not null)
+                        {
+                            <button type="button" class="btn btn-cancelar ms-2" disabled="@guardando"
+                                    @onclick="CancelarEdicionExperiencia">Cancelar edición</button>
+                        }
+                    </div>
+                </div>
+                @if (formulario.Experiencias.Count > 0)
+                {
+                    <div class="table-responsive mt-4">
+                        <table class="table table-striped table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Cargo</th>
+                                    <th>Institución</th>
+                                    <th>Inicio</th>
+                                    <th>Finalización</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var experiencia in formulario.Experiencias)
+                                {
+                                    <tr>
+                                        <td>@experiencia.NombreCargo</td>
+                                        <td>@experiencia.Institucion</td>
+                                        <td>@experiencia.FechaInicio?.ToString("dd/MM/yyyy")</td>
+                                        <td>
+                                            @(experiencia.FechaFin?.ToString("dd/MM/yyyy") ?? "Actualidad")
+                                        </td>
+                                        <td>
+                                            @if (editando)
+                                            {
+                                                <button type="button" class="btn btn-editar-detalle btn-sm me-1"
+                                                        disabled="@guardando" @onclick="() => SeleccionarExperiencia(experiencia)">Editar</button>
+                                            }
+                                            <button type="button" class="btn btn-quitar-detalle btn-sm" disabled="@guardando"
+                                                    @onclick="() => QuitarExperiencia(experiencia)">
+                                                Quitar
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted mt-3">
+                        Todavía no se han agregado experiencias.
+                    </p>
+                }
+            </div>
+        </div>
+    }
+    <!-- PESTAÑA 5: RECONOCIMIENTOS -->
+    @if (pestana == "reconocimientos")
+    {
+        <div class="card maestro-card">
+            <div class="card-header">
+                <h4>5. Reconocimientos académicos</h4>
+                <small>Debe agregar como mínimo un reconocimiento.</small>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Nombre del reconocimiento *</label>
+                        <input class="form-control" maxlength="45" @bind="nuevoReconocimiento.Nombre" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Institución *</label>
+                        <input class="form-control" maxlength="45" @bind="nuevoReconocimiento.Institucion" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Tipo *</label>
+                        <input class="form-control" maxlength="45" @bind="nuevoReconocimiento.Tipo" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Ámbito *</label>
+                        <input class="form-control" maxlength="45" @bind="nuevoReconocimiento.Ambito" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Fecha *</label>
+                        <input type="date" class="form-control" @bind="nuevoReconocimiento.Fecha"
+                               @bind:format="yyyy-MM-dd" />
+                    </div>
+                    <div class="col-12">
+                        <button type="button" class="btn btn-agregar-detalle" disabled="@guardando"
+                                @onclick="AgregarReconocimiento">
+                            @(editandoReconocimiento is not null ? "Guardar cambios" : "+ Agregar reconocimiento")
+                        </button>
+                        @if (editandoReconocimiento is not null)
+                        {
+                            <button type="button" class="btn btn-cancelar ms-2" disabled="@guardando"
+                                    @onclick="CancelarEdicionReconocimiento">Cancelar edición</button>
+                        }
+                    </div>
+                </div>
+                @if (formulario.Reconocimientos.Count > 0)
+                {
+                    <div class="table-responsive mt-4">
+                        <table class="table table-striped table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Institución</th>
+                                    <th>Fecha</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var reconocimiento in formulario.Reconocimientos)
+                                {
+                                    <tr>
+                                        <td>@reconocimiento.Nombre</td>
+                                        <td>@reconocimiento.Institucion</td>
+                                        <td>@reconocimiento.Fecha?.ToString("dd/MM/yyyy")</td>
+                                        <td>
+                                            @if (editando)
+                                            {
+                                                <button type="button" class="btn btn-editar-detalle btn-sm me-1"
+                                                        disabled="@guardando" @onclick="() => SeleccionarReconocimiento(reconocimiento)">Editar</button>
+                                            }
+                                            <button type="button" class="btn btn-quitar-detalle btn-sm" disabled="@guardando"
+                                                    @onclick="() => QuitarReconocimiento(reconocimiento)">
+                                                Quitar
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted mt-3">
+                        Todavía no se han agregado reconocimientos.
+                    </p>
+                }
+            </div>
+        </div>
+    }
+    <!-- RESUMEN Y GUARDADO -->
+    <div class="card maestro-resumen">
+        <div class="card-body">
+            <h5 class="mb-3">@(editando ? "Edición del docente" : "Estado del registro")</h5>
+            <div class="resumen-contadores">
+                <span class="estado @(formulario.Estudios.Count > 0 ? "completo" : "pendiente")">
+                    @(formulario.Estudios.Count > 0 ? "✓" : "○")
+                    Estudios: @formulario.Estudios.Count
+                </span>
+                <span class="estado @(formulario.Evaluaciones.Count > 0 ? "completo" : "pendiente")">
+                    @(formulario.Evaluaciones.Count > 0 ? "✓" : "○")
+                    Evaluaciones: @formulario.Evaluaciones.Count
+                </span>
+                <span class="estado @(formulario.Experiencias.Count > 0 ? "completo" : "pendiente")">
+                    @(formulario.Experiencias.Count > 0 ? "✓" : "○")
+                    Experiencias: @formulario.Experiencias.Count
+                </span>
+                <span class="estado @(formulario.Reconocimientos.Count > 0 ? "completo" : "pendiente")">
+                    @(formulario.Reconocimientos.Count > 0 ? "✓" : "○")
+                    Reconocimientos: @formulario.Reconocimientos.Count
+                </span>
+            </div>
+            <div class="resumen-botones mt-3">
+                <button type="button" class="btn btn-guardar-maestro" disabled="@(guardando || cargandoDetallesEdicion)" @onclick="GuardarTodo">
+                    @(guardando ? "Guardando..." : editando ? "Actualizar docente y detalles" : "Guardar docente y detalles")
+                </button>
+                <button type="button" class="btn btn-cancelar" disabled="@guardando" @onclick="Limpiar">
+                    Limpiar formulario
+                </button>
+            </div>
+            @if (!DetallesCompletos)
+            {
+                <small class="text-muted d-block mt-2">
+                    Debe agregar al menos un registro en cada sección
+                    antes de guardar.
+                </small>
+            }
+        </div>
+    </div>
+    }
+    @if (Sesion.Autenticado)
+    {
+    <!-- LISTADO DE DOCENTES REGISTRADOS -->
+    <div class="card maestro-card mt-4" id="listado-docentes">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h4>Docentes registrados (@docentesFiltrados.Count)</h4>
+                <small>Consulte, edite o retire docentes.</small>
+            </div>
+            <button type="button" class="btn btn-actualizar-listado btn-sm"
+                    disabled="@guardando" @onclick="CargarDocentes">
+                Actualizar listado
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <input class="form-control"
+                           placeholder="Buscar por cédula, nombre, correo o cargo"
+                           @bind="busqueda" @bind:event="oninput" />
+                </div>
+                <div class="col-md-3 ms-md-auto">
+                    <label class="form-label small mb-1" for="tamanioPaginaDocentes">Registros por página</label>
+                    <select id="tamanioPaginaDocentes" class="form-select form-select-sm" @bind="tamanioPagina">
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+            </div>
+            @if (cargandoDocentes)
+            {
+                <p class="text-muted">Cargando docentes...</p>
+            }
+            else if (docentesFiltrados.Count == 0)
+            {
+                <p class="text-muted">No se encontraron docentes.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Cédula</th>
+                                <th>Nombres</th>
+                                <th>Apellidos</th>
+                                <th>Correo</th>
+                                <th>Cargo</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in docentesPagina)
+                            {
+                                <tr @key="item.Cedula">
+                                    <td>@item.Cedula</td>
+                                    <td>@item.Nombres</td>
+                                    <td>@item.Apellidos</td>
+                                    <td>@item.Correo</td>
+                                    <td>@item.Cargo</td>
+                                    <td>
+                                        @if (PuedeModificar)
+                                        {
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <button type="button"
+                                                    class="btn btn-editar-docente btn-sm"
+                                                    disabled="@guardando"
+                                                    @onclick="() => EditarDocente(item)">
+                                                ✏️ Editar
+                                            </button>
+                                            @if (cedulaPorRetirar == item.Cedula)
+                                            {
+                                                <button type="button"
+                                                        class="btn btn-retirar btn-sm"
+                                                        disabled="@guardando"
+                                                        @onclick="() => RetirarDocente(item.Cedula)">
+                                                    Confirmar retiro
+                                                </button>
+                                                <button type="button"
+                                                        class="btn btn-cancelar btn-sm"
+                                                        @onclick="CancelarRetiro">
+                                                    Cancelar
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button type="button"
+                                                        class="btn btn-retirar btn-sm"
+                                                        disabled="@guardando"
+                                                        @onclick="() => SolicitarRetiro(item.Cedula)">
+                                                    🗑️ Retirar
+                                                </button>
+                                            }
+                                        </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">Solo consulta</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
+                    <small class="text-muted">
+                        Mostrando @(((paginaActualSegura - 1) * tamanioPagina) + 1)–@(Math.Min(paginaActualSegura * tamanioPagina, docentesFiltrados.Count))
+                        de @docentesFiltrados.Count docentes
+                    </small>
+                    <div class="d-flex align-items-center gap-2" aria-label="Paginación de docentes">
+                        <button type="button" class="btn btn-outline-secondary btn-sm"
+                                disabled="@(paginaActualSegura <= 1)"
+                                @onclick="PaginaAnterior">Anterior</button>
+                        <span class="small">Página @paginaActualSegura de @totalPaginas</span>
+                        <button type="button" class="btn btn-outline-secondary btn-sm"
+                                disabled="@(paginaActualSegura >= totalPaginas)"
+                                @onclick="PaginaSiguiente">Siguiente</button>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+    }
+</div>
+<style>
+    .maestro-contenedor {
+        max-width: 1250px;
+        margin: 0 auto;
+        padding-bottom: 25px;
+    }
+    .maestro-encabezado {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    .maestro-encabezado h1 {
+        font-size: 26px;
+        font-weight: 700;
+        color: #17243b;
+        margin-bottom: 6px;
+    }
+    .maestro-navegacion {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        background: #ffffff;
+        padding: 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        margin-bottom: 18px;
+    }
+    .pestana {
+        border: 1px solid #dbe3ed;
+        background: #f8fafc;
+        color: #334155;
+        padding: 10px 14px;
+        border-radius: 7px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .pestana:hover {
+        background: #eaf1ff;
+        border-color: #93b4ef;
+    }
+    .pestana.activa {
+        background: #1d4ed8;
+        border-color: #1d4ed8;
+        color: #ffffff;
+    }
+    .contador {
+        display: inline-block;
+        min-width: 20px;
+        padding: 2px 5px;
+        margin-left: 5px;
+        border-radius: 12px;
+        background: #e2e8f0;
+        color: #334155;
+        font-size: 11px;
+        text-align: center;
+    }
+    .pestana.activa .contador {
+        background: rgba(255, 255, 255, 0.2);
+        color: #ffffff;
+    }
+    .maestro-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 18px;
+    }
+    .maestro-card .card-header {
+        background: #f8fafc;
+        padding: 15px 20px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .maestro-card .card-header h4 {
+        margin: 0 0 4px;
+        font-size: 17px;
+        font-weight: 700;
+        color: #17243b;
+    }
+    .maestro-card .card-header small {
+        color: #64748b;
+    }
+    .maestro-card .card-body {
+        padding: 20px;
+    }
+    .maestro-card .form-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #334155;
+        margin-bottom: 6px;
+    }
+    .maestro-card .form-control,
+    .maestro-card .form-select {
+        min-height: 39px;
+        font-size: 14px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        background: #ffffff;
+        color: #1e293b;
+    }
+    .maestro-card textarea.form-control {
+        min-height: 75px;
+    }
+    .maestro-card .form-control:focus,
+    .maestro-card .form-select:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
+    }
+    .maestro-card .table {
+        font-size: 13px;
+    }
+    .maestro-card .table th {
+        white-space: nowrap;
+    }
+    .maestro-resumen {
+        border: 1px solid #dbe3ed;
+        border-radius: 10px;
+        background: #ffffff;
+    }
+    .resumen-contadores {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .estado {
+        font-size: 12px;
+        font-weight: 600;
+        padding: 7px 10px;
+        border-radius: 7px;
+    }
+    .estado.completo {
+        color: #166534;
+        background: #dcfce7;
+    }
+    .estado.pendiente {
+        color: #9a3412;
+        background: #ffedd5;
+    }
+    .resumen-botones {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    @@media (max-width: 768px) {
+        .maestro-encabezado h1 {
+            font-size: 21px;
+        }
+        .maestro-navegacion {
+            gap: 6px;
+        }
+        .pestana {
+            font-size: 12px;
+            padding: 9px;
+        }
+        .maestro-card .card-body {
+            padding: 15px;
+        }
+        .resumen-botones .btn {
+            flex: 1;
+        }
+    }
+    /* Botones de retiro: rojo sólido en la pantalla del menú Docentes */
+    .maestro-contenedor .btn-retirar {
+        background-color: #dc2626 !important;
+        border-color: #dc2626 !important;
+        color: #ffffff !important;
+        font-weight: 600;
+    }
+    .maestro-contenedor .btn-retirar:hover {
+        background-color: #b91c1c !important;
+        border-color: #b91c1c !important;
+        color: #ffffff !important;
+    }
+    .maestro-contenedor .btn-retirar:disabled {
+        background-color: #dc2626 !important;
+        border-color: #dc2626 !important;
+        color: #ffffff !important;
+        opacity: .65;
+    }
+
+    /* Paleta consistente para las acciones del maestro */
+    .maestro-contenedor .btn-agregar-detalle {
+        background: #15803d !important;
+        border-color: #15803d !important;
+        color: #fff !important;
+        font-weight: 600;
+    }
+    .maestro-contenedor .btn-agregar-detalle:hover:not(:disabled) {
+        background: #166534 !important;
+        border-color: #166534 !important;
+    }
+    .maestro-contenedor .btn-editar-detalle,
+    .maestro-contenedor .btn-editar-docente {
+        background: #f59e0b !important;
+        border-color: #f59e0b !important;
+        color: #1f2937 !important;
+        font-weight: 700;
+    }
+    .maestro-contenedor .btn-editar-detalle:hover:not(:disabled),
+    .maestro-contenedor .btn-editar-docente:hover:not(:disabled) {
+        background: #d97706 !important;
+        border-color: #d97706 !important;
+        color: #fff !important;
+    }
+    .maestro-contenedor .btn-quitar-detalle {
+        background: #dc2626 !important;
+        border-color: #dc2626 !important;
+        color: #fff !important;
+        font-weight: 600;
+    }
+    .maestro-contenedor .btn-quitar-detalle:hover:not(:disabled) {
+        background: #b91c1c !important;
+        border-color: #b91c1c !important;
+    }
+    .maestro-contenedor .btn-guardar-maestro {
+        background: #2563eb !important;
+        border-color: #2563eb !important;
+        color: #fff !important;
+        font-weight: 700;
+    }
+    .maestro-contenedor .btn-guardar-maestro:hover:not(:disabled) {
+        background: #1d4ed8 !important;
+        border-color: #1d4ed8 !important;
+    }
+    .maestro-contenedor .btn-actualizar-listado {
+        background: #0891b2 !important;
+        border-color: #0891b2 !important;
+        color: #fff !important;
+        font-weight: 600;
+    }
+    .maestro-contenedor .btn-actualizar-listado:hover:not(:disabled) {
+        background: #0e7490 !important;
+        border-color: #0e7490 !important;
+    }
+    .maestro-contenedor .btn-cancelar {
+        background: #64748b !important;
+        border-color: #64748b !important;
+        color: #fff !important;
+        font-weight: 600;
+    }
+    .maestro-contenedor .btn-cancelar:hover:not(:disabled) {
+        background: #475569 !important;
+        border-color: #475569 !important;
+    }
+    .maestro-contenedor button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+</style>
+@code {
+    // ============================================
+    // VARIABLES DEL FORMULARIO
+    // ============================================
+    private bool PuedeModificar => Sesion.TieneRol("ADMIN", "GESTOR");
+    private string pestana = "datos";
+    private bool editando;
+    private bool cargandoDetallesEdicion;
+    private EstudioMaestroDto? editandoEstudio;
+    private EvaluacionMaestroDto? editandoEvaluacion;
+    private ExperienciaMaestroDto? editandoExperiencia;
+    private ReconocimientoMaestroDto? editandoReconocimiento;
+    private readonly Dictionary<EstudioMaestroDto,int> idEstudios = new();
+    private readonly Dictionary<EvaluacionMaestroDto,int> idEvaluaciones = new();
+    private readonly Dictionary<ExperienciaMaestroDto,int> idExperiencias = new();
+    private readonly Dictionary<ReconocimientoMaestroDto,int> idReconocimientos = new();
+    private readonly HashSet<int> estudiosRetirados = new();
+    private readonly HashSet<int> evaluacionesRetiradas = new();
+    private readonly HashSet<int> experienciasRetiradas = new();
+    private readonly HashSet<int> reconocimientosRetirados = new();
+    private bool cargandoDocentes;
+    private List<DocenteDto> docentes = new();
+    private string busqueda = "";
+    private int? cedulaPorRetirar;
+    private int paginaActual = 1;
+    private int tamanioPagina = 10;
+    private int totalPaginas => Math.Max(1, (int)Math.Ceiling((double)docentesFiltrados.Count / tamanioPagina));
+    private int paginaActualSegura => Math.Clamp(paginaActual, 1, totalPaginas);
+    private List<DocenteDto> docentesPagina => docentesFiltrados
+        .Skip((paginaActualSegura - 1) * tamanioPagina)
+        .Take(tamanioPagina)
+        .ToList();
+    private void PaginaAnterior() => paginaActual = Math.Max(1, paginaActualSegura - 1);
+    private void PaginaSiguiente() => paginaActual = Math.Min(totalPaginas, paginaActualSegura + 1);
+    private List<DocenteDto> docentesFiltrados => docentes
+        .Where(d => string.IsNullOrWhiteSpace(busqueda) ||
+            d.Cedula.ToString().Contains(busqueda.Trim(), StringComparison.OrdinalIgnoreCase) ||
+            d.Nombres.Contains(busqueda.Trim(), StringComparison.OrdinalIgnoreCase) ||
+            d.Apellidos.Contains(busqueda.Trim(), StringComparison.OrdinalIgnoreCase) ||
+            d.Correo.Contains(busqueda.Trim(), StringComparison.OrdinalIgnoreCase) ||
+            d.Cargo.Contains(busqueda.Trim(), StringComparison.OrdinalIgnoreCase))
+        .ToList();
+    private DocenteMaestroDto formulario = new();
+    private EstudioMaestroDto nuevoEstudio = new();
+    private EvaluacionMaestroDto nuevaEvaluacion = new();
+    private ExperienciaMaestroDto nuevaExperiencia = new();
+    private ReconocimientoMaestroDto nuevoReconocimiento = new();
+    private List<LineaInvestigacionDto> lineas = new();
+    private bool guardando;
+    private bool esError;
+    private string mensaje = "";
+    // Indica si todas las secciones tienen registros.
+    private bool DetallesCompletos =>
+        formulario.Estudios.Count > 0 &&
+        formulario.Evaluaciones.Count > 0 &&
+        formulario.Experiencias.Count > 0 &&
+        formulario.Reconocimientos.Count > 0;
+    // ============================================
+    // CARGAR LÍNEAS DE INVESTIGACIÓN
+    // ============================================
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            lineas = await ServicioLineas.ObtenerTodosAsync();
+        }
+        catch (Exception)
+        {
+            MostrarError(
+                "No fue posible cargar las líneas de investigación.");
+        }
+        if (Sesion.Autenticado)
+            await CargarDocentes();
+    }
+    private async Task CargarDocentes()
+    {
+        if (!Sesion.Autenticado)
+            return;
+        cargandoDocentes = true;
+        try
+        {
+            docentes = await ServicioDocentes.Listar();
+        }
+        catch (Exception)
+        {
+            MostrarError("No fue posible cargar el listado de docentes.");
+        }
+        finally
+        {
+            cargandoDocentes = false;
+        }
+    }
+    // ============================================
+    // CAMBIAR PESTAÑA
+    // ============================================
+    private void CambiarPestana(string nuevaPestana)
+    {
+        if (guardando)
+            return;
+                pestana = nuevaPestana;
+    }
+    // ============================================
+    // AGREGAR ESTUDIO
+    // ============================================
+    private void AgregarEstudio()
+    {
+        if (!PuedeModificar) return;
+        if (string.IsNullOrWhiteSpace(nuevoEstudio.Titulo) ||
+            string.IsNullOrWhiteSpace(nuevoEstudio.Universidad) ||
+            string.IsNullOrWhiteSpace(nuevoEstudio.Tipo) ||
+            string.IsNullOrWhiteSpace(nuevoEstudio.Ciudad) ||
+            string.IsNullOrWhiteSpace(nuevoEstudio.Pais) ||
+            string.IsNullOrWhiteSpace(nuevoEstudio.Metodologia) ||
+            string.IsNullOrWhiteSpace(nuevoEstudio.PerfilEgresado) ||
+            !nuevoEstudio.Fecha.HasValue)
+        {
+            MostrarError(
+                "Complete todos los campos obligatorios del estudio.");
+            return;
+        }
+        if (editandoEstudio is not null)
+        {
+            var posicion = formulario.Estudios.IndexOf(editandoEstudio);
+            if (posicion >= 0)
+            {
+                if (idEstudios.TryGetValue(editandoEstudio, out var id))
+                {
+                    idEstudios.Remove(editandoEstudio);
+                    idEstudios[nuevoEstudio] = id;
+                }
+                formulario.Estudios[posicion] = nuevoEstudio;
+            }
+        }
+        else
+        {
+            formulario.Estudios.Add(nuevoEstudio);
+        }
+        editandoEstudio = null;
+        nuevoEstudio = new();
+        LimpiarMensaje();
+    }
+    private void QuitarEstudio(EstudioMaestroDto estudio)
+    {
+        if (!PuedeModificar) return;
+        if (idEstudios.TryGetValue(estudio, out var id))
+        {
+            estudiosRetirados.Add(id);
+            idEstudios.Remove(estudio);
+        }
+        formulario.Estudios.Remove(estudio);
+        if (ReferenceEquals(editandoEstudio, estudio))
+            CancelarEdicionEstudio();
+    }
+    // ============================================
+    // AGREGAR EVALUACIÓN
+    // ============================================
+    private void AgregarEvaluacion()
+    {
+        if (!PuedeModificar) return;
+        if (string.IsNullOrWhiteSpace(nuevaEvaluacion.Semestre) ||
+            nuevaEvaluacion.Calificacion < 0 ||
+            nuevaEvaluacion.Calificacion > 5)
+        {
+            MostrarError(
+                "Ingrese un semestre y una calificación entre 0 y 5.");
+            return;
+        }
+        if (editandoEvaluacion is not null)
+        {
+            var posicion = formulario.Evaluaciones.IndexOf(editandoEvaluacion);
+            if (posicion >= 0)
+            {
+                if (idEvaluaciones.TryGetValue(editandoEvaluacion, out var id))
+                {
+                    idEvaluaciones.Remove(editandoEvaluacion);
+                    idEvaluaciones[nuevaEvaluacion] = id;
+                }
+                formulario.Evaluaciones[posicion] = nuevaEvaluacion;
+            }
+        }
+        else
+        {
+            formulario.Evaluaciones.Add(nuevaEvaluacion);
+        }
+        editandoEvaluacion = null;
+        nuevaEvaluacion = new();
+        LimpiarMensaje();
+    }
+    private void QuitarEvaluacion(
+        EvaluacionMaestroDto evaluacion)
+    {
+        if (idEvaluaciones.TryGetValue(evaluacion, out var id))
+        {
+            evaluacionesRetiradas.Add(id);
+            idEvaluaciones.Remove(evaluacion);
+        }
+        formulario.Evaluaciones.Remove(evaluacion);
+        if (ReferenceEquals(editandoEvaluacion, evaluacion))
+            CancelarEdicionEvaluacion();
+    }
+    // ============================================
+    // AGREGAR EXPERIENCIA
+    // ============================================
+    private void AgregarExperiencia()
+    {
+        if (!PuedeModificar) return;
+        if (string.IsNullOrWhiteSpace(nuevaExperiencia.NombreCargo) ||
+            string.IsNullOrWhiteSpace(nuevaExperiencia.Institucion) ||
+            string.IsNullOrWhiteSpace(nuevaExperiencia.Tipo) ||
+            !nuevaExperiencia.FechaInicio.HasValue)
+        {
+            MostrarError(
+                "Complete los campos obligatorios de la experiencia.");
+            return;
+        }
+        if (nuevaExperiencia.FechaFin.HasValue &&
+            nuevaExperiencia.FechaFin.Value.Date <
+            nuevaExperiencia.FechaInicio.Value.Date)
+        {
+            MostrarError(
+                "La fecha final no puede ser anterior a la inicial.");
+            return;
+        }
+        if (editandoExperiencia is not null)
+        {
+            var posicion = formulario.Experiencias.IndexOf(editandoExperiencia);
+            if (posicion >= 0)
+            {
+                if (idExperiencias.TryGetValue(editandoExperiencia, out var id))
+                {
+                    idExperiencias.Remove(editandoExperiencia);
+                    idExperiencias[nuevaExperiencia] = id;
+                }
+                formulario.Experiencias[posicion] = nuevaExperiencia;
+            }
+        }
+        else
+        {
+            formulario.Experiencias.Add(nuevaExperiencia);
+        }
+        editandoExperiencia = null;
+        nuevaExperiencia = new();
+        LimpiarMensaje();
+    }
+    private void QuitarExperiencia(
+        ExperienciaMaestroDto experiencia)
+    {
+        if (idExperiencias.TryGetValue(experiencia, out var id))
+        {
+            experienciasRetiradas.Add(id);
+            idExperiencias.Remove(experiencia);
+        }
+        formulario.Experiencias.Remove(experiencia);
+        if (ReferenceEquals(editandoExperiencia, experiencia))
+            CancelarEdicionExperiencia();
+    }
+    // ============================================
+    // AGREGAR RECONOCIMIENTO
+    // ============================================
+    private void AgregarReconocimiento()
+    {
+        if (!PuedeModificar) return;
+        if (string.IsNullOrWhiteSpace(nuevoReconocimiento.Nombre) ||
+            string.IsNullOrWhiteSpace(nuevoReconocimiento.Institucion) ||
+            string.IsNullOrWhiteSpace(nuevoReconocimiento.Tipo) ||
+            string.IsNullOrWhiteSpace(nuevoReconocimiento.Ambito) ||
+            !nuevoReconocimiento.Fecha.HasValue)
+        {
+            MostrarError(
+                "Complete los campos obligatorios del reconocimiento.");
+            return;
+        }
+        if (editandoReconocimiento is not null)
+        {
+            var posicion = formulario.Reconocimientos.IndexOf(editandoReconocimiento);
+            if (posicion >= 0)
+            {
+                if (idReconocimientos.TryGetValue(editandoReconocimiento, out var id))
+                {
+                    idReconocimientos.Remove(editandoReconocimiento);
+                    idReconocimientos[nuevoReconocimiento] = id;
+                }
+                formulario.Reconocimientos[posicion] = nuevoReconocimiento;
+            }
+        }
+        else
+        {
+            formulario.Reconocimientos.Add(nuevoReconocimiento);
+        }
+        editandoReconocimiento = null;
+        nuevoReconocimiento = new();
+        LimpiarMensaje();
+    }
+    private void QuitarReconocimiento(
+        ReconocimientoMaestroDto reconocimiento)
+    {
+        if (idReconocimientos.TryGetValue(reconocimiento, out var id))
+        {
+            reconocimientosRetirados.Add(id);
+            idReconocimientos.Remove(reconocimiento);
+        }
+        formulario.Reconocimientos.Remove(reconocimiento);
+        if (ReferenceEquals(editandoReconocimiento, reconocimiento))
+            CancelarEdicionReconocimiento();
+    }
+    private void SeleccionarEstudio(EstudioMaestroDto actual)
+    {
+        editandoEstudio = actual;
+        nuevoEstudio = new EstudioMaestroDto
+        {
+            Titulo = actual.Titulo,
+            Universidad = actual.Universidad,
+            Fecha = actual.Fecha,
+            Tipo = actual.Tipo,
+            Ciudad = actual.Ciudad,
+            InsAcreditada = actual.InsAcreditada,
+            Metodologia = actual.Metodologia,
+            PerfilEgresado = actual.PerfilEgresado,
+            Pais = actual.Pais
+        };
+        LimpiarMensaje();
+    }
+
+    private void CancelarEdicionEstudio()
+    {
+        editandoEstudio = null;
+        nuevoEstudio = new();
+    }
+
+    private void SeleccionarEvaluacion(EvaluacionMaestroDto actual)
+    {
+        editandoEvaluacion = actual;
+        nuevaEvaluacion = new EvaluacionMaestroDto
+        {
+            Calificacion = actual.Calificacion,
+            Semestre = actual.Semestre
+        };
+        LimpiarMensaje();
+    }
+
+    private void CancelarEdicionEvaluacion()
+    {
+        editandoEvaluacion = null;
+        nuevaEvaluacion = new();
+    }
+
+    private void SeleccionarExperiencia(ExperienciaMaestroDto actual)
+    {
+        editandoExperiencia = actual;
+        nuevaExperiencia = new ExperienciaMaestroDto
+        {
+            NombreCargo = actual.NombreCargo,
+            Institucion = actual.Institucion,
+            Tipo = actual.Tipo,
+            FechaInicio = actual.FechaInicio,
+            FechaFin = actual.FechaFin
+        };
+        LimpiarMensaje();
+    }
+
+    private void CancelarEdicionExperiencia()
+    {
+        editandoExperiencia = null;
+        nuevaExperiencia = new();
+    }
+
+    private void SeleccionarReconocimiento(ReconocimientoMaestroDto actual)
+    {
+        editandoReconocimiento = actual;
+        nuevoReconocimiento = new ReconocimientoMaestroDto
+        {
+            Tipo = actual.Tipo,
+            Fecha = actual.Fecha,
+            Institucion = actual.Institucion,
+            Nombre = actual.Nombre,
+            Ambito = actual.Ambito
+        };
+        LimpiarMensaje();
+    }
+
+    private void CancelarEdicionReconocimiento()
+    {
+        editandoReconocimiento = null;
+        nuevoReconocimiento = new();
+    }
+
+    // ============================================
+    // GUARDAR DOCENTE Y TODOS SUS DETALLES
+    // ============================================
+    private async Task GuardarTodo()
+    {
+        if (!PuedeModificar)
+        {
+            MostrarError("No tienes permiso para modificar docentes.");
+            return;
+        }
+        if (guardando)
+            return;
+        var docente = formulario.Docente;
+        var camposFaltantes = new List<string>();
+        if (docente.Cedula <= 0)
+            camposFaltantes.Add("Cédula");
+        if (string.IsNullOrWhiteSpace(docente.Nombres))
+            camposFaltantes.Add("Nombres");
+        if (string.IsNullOrWhiteSpace(docente.Apellidos))
+            camposFaltantes.Add("Apellidos");
+        if (string.IsNullOrWhiteSpace(docente.Genero))
+            camposFaltantes.Add("Género");
+        if (string.IsNullOrWhiteSpace(docente.Cargo))
+            camposFaltantes.Add("Cargo");
+        if (docente.FechaNacimiento == default)
+            camposFaltantes.Add("Fecha de nacimiento");
+        if (string.IsNullOrWhiteSpace(docente.Correo))
+            camposFaltantes.Add("Correo electrónico");
+        if (string.IsNullOrWhiteSpace(docente.Telefono))
+            camposFaltantes.Add("Teléfono");
+        if (string.IsNullOrWhiteSpace(docente.UrlCvlac))
+            camposFaltantes.Add("URL CvLAC");
+        if (string.IsNullOrWhiteSpace(docente.Escalafon))
+            camposFaltantes.Add("Escalafón");
+        if (string.IsNullOrWhiteSpace(docente.Perfil))
+            camposFaltantes.Add("Perfil profesional");
+        if (string.IsNullOrWhiteSpace(docente.ConvMinciencia))
+            camposFaltantes.Add("Convocatoria Minciencias");
+        if (string.IsNullOrWhiteSpace(docente.Nacionalidaad))
+            camposFaltantes.Add("Nacionalidad");
+        if (camposFaltantes.Count > 0)
+        {
+            pestana = "datos";
+            MostrarError("Faltan los siguientes campos del docente: " +
+                string.Join(", ", camposFaltantes) + ".");
+            return;
+        }
+        if (docente.FechaNacimiento.Date >= DateTime.Today)
+        {
+            pestana = "datos";
+            MostrarError("La fecha de nacimiento debe ser anterior a hoy.");
+            return;
+        }
+        if (!new EmailAddressAttribute().IsValid(docente.Correo))
+        {
+            pestana = "datos";
+            MostrarError("El correo electrónico no tiene un formato válido.");
+            return;
+        }
+        if (formulario.Estudios.Count == 0)
+        {
+            pestana = "estudios";
+            MostrarError("Debe agregar al menos un estudio realizado.");
+            return;
+        }
+        if (formulario.Evaluaciones.Count == 0)
+        {
+            pestana = "evaluaciones";
+            MostrarError("Debe agregar al menos una evaluación docente.");
+            return;
+        }
+        if (formulario.Experiencias.Count == 0)
+        {
+            pestana = "experiencias";
+            MostrarError("Debe agregar al menos una experiencia profesional.");
+            return;
+        }
+        if (formulario.Reconocimientos.Count == 0)
+        {
+            pestana = "reconocimientos";
+            MostrarError("Debe agregar al menos un reconocimiento académico.");
+            return;
+        }
+        var contexto = new ValidationContext(docente);
+        var resultados = new List<ValidationResult>();
+        if (!Validator.TryValidateObject(docente, contexto, resultados, true))
+        {
+            pestana = "datos";
+            MostrarError("Revise los siguientes datos: " +
+                string.Join(" | ", resultados.Select(x => x.ErrorMessage)));
+            return;
+        }
+        guardando = true;
+        LimpiarMensaje();
+        try
+        {
+            if (editando)
+            {
+                // Construir el pedido maestro-detalle. Los registros existentes
+                // llevan su ID; los nuevos se envían con ID nulo.
+                var peticion = new
+                {
+                    Docente = docente,
+                    Estudios = formulario.Estudios.Select(x => new
+                    {
+                        Id = idEstudios.TryGetValue(x, out var id) ? (int?)id : null,
+                        x.Titulo, x.Universidad, x.Fecha, x.Tipo, x.Ciudad,
+                        x.InsAcreditada, x.Metodologia, x.PerfilEgresado, x.Pais
+                    }).ToList(),
+                    Evaluaciones = formulario.Evaluaciones.Select(x => new
+                    {
+                        Id = idEvaluaciones.TryGetValue(x, out var id) ? (int?)id : null,
+                        x.Calificacion, x.Semestre
+                    }).ToList(),
+                    Experiencias = formulario.Experiencias.Select(x => new
+                    {
+                        Id = idExperiencias.TryGetValue(x, out var id) ? (int?)id : null,
+                        x.NombreCargo, x.Institucion, x.Tipo, x.FechaInicio, x.FechaFin
+                    }).ToList(),
+                    Reconocimientos = formulario.Reconocimientos.Select(x => new
+                    {
+                        Id = idReconocimientos.TryGetValue(x, out var id) ? (int?)id : null,
+                        x.Tipo, x.Fecha, x.Institucion, x.Nombre, x.Ambito
+                    }).ToList(),
+                    EstudiosPorRetirar = estudiosRetirados.ToList(),
+                    EvaluacionesPorRetirar = evaluacionesRetiradas.ToList(),
+                    ExperienciasPorRetirar = experienciasRetiradas.ToList(),
+                    ReconocimientosPorRetirar = reconocimientosRetirados.ToList()
+                };
+                var resultadoEdicion = await ServicioEdicion.Actualizar(docente.Cedula, peticion);
+                esError = !resultadoEdicion.Ok;
+                mensaje = resultadoEdicion.Mensaje;
+                if (resultadoEdicion.Ok)
+                {
+                    LimpiarDatos();
+                    pestana = "datos";
+                    await CargarDocentes();
+                }
+                return;
+            }
+            var resultado = await ServicioMaestro.Registrar(formulario);
+            esError = !resultado.Ok;
+            mensaje = resultado.Mensaje;
+            if (resultado.Ok)
+            {
+                LimpiarDatos();
+                pestana = "datos";
+                await CargarDocentes();
+            }
+        }
+        catch (Exception)
+        {
+            MostrarError("Ocurrió un error al registrar el docente y sus detalles.");
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+    // ============================================
+    private async Task EditarDocente(DocenteDto item)
+    {
+        if (!PuedeModificar)
+        {
+            MostrarError("No tienes permiso para modificar docentes.");
+            return;
+        }
+        if (guardando || cargandoDetallesEdicion) return;
+        cargandoDetallesEdicion = true;
+        List<EstudioRealizadoDto> estudios;
+        List<EvaluacionDocenteDto> evaluaciones;
+        List<ExperienciaDocenteDto> experiencias;
+        List<ReconocimientoDocenteDto> reconocimientos;
+        string seccion = "Estudios";
+        try
+        {
+            // Consultar una sección a la vez para identificar
+            // exactamente qué petición HTTP está fallando.
+            estudios = await ServicioEstudios.PorDocente(item.Cedula);
+
+            seccion = "Evaluaciones";
+            evaluaciones = await ServicioEvaluaciones.PorDocente(item.Cedula);
+
+            seccion = "Experiencias";
+            experiencias = await ServicioExperiencias.PorDocente(item.Cedula);
+
+            seccion = "Reconocimientos";
+            reconocimientos = await ServicioReconocimientos.PorDocente(item.Cedula);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(
+                $"Error al cargar {seccion} del docente {item.Cedula}: {ex}");
+
+            MostrarError(
+                $"Error al cargar {seccion} del docente {item.Cedula}: {ex.Message}");
+
+            cargandoDetallesEdicion = false;
+            return;
+        }
+        cargandoDetallesEdicion = false;
+        LimpiarDatos();
+        editando = true;
+        cedulaPorRetirar = null;
+        pestana = "datos";
+        LimpiarMensaje();
+        formulario = new DocenteMaestroDto
+        {
+            Docente = new DocenteDto
+            {
+                Cedula = item.Cedula,
+                Nombres = item.Nombres,
+                Apellidos = item.Apellidos,
+                Genero = item.Genero,
+                Cargo = item.Cargo,
+                FechaNacimiento = item.FechaNacimiento,
+                Correo = item.Correo,
+                Telefono = item.Telefono,
+                UrlCvlac = item.UrlCvlac,
+                Escalafon = item.Escalafon,
+                Perfil = item.Perfil,
+                CatMinciencia = item.CatMinciencia,
+                ConvMinciencia = item.ConvMinciencia,
+                Nacionalidaad = item.Nacionalidaad,
+                LineaInvestigacionPrincipal = item.LineaInvestigacionPrincipal,
+                Activo = item.Activo
+            }
+        };
+        foreach (var e in estudios)
+        {
+            var x = new EstudioMaestroDto
+            {
+                Titulo=e.Titulo, Universidad=e.Universidad, Fecha=e.Fecha,
+                Tipo=e.Tipo, Ciudad=e.Ciudad, InsAcreditada=e.InsAcreditada,
+                Metodologia=e.Metodologia, PerfilEgresado=e.PerfilEgresado, Pais=e.Pais
+            };
+            formulario.Estudios.Add(x);
+            idEstudios[x] = e.Id;
+        }
+        foreach (var e in evaluaciones)
+        {
+            var x = new EvaluacionMaestroDto { Calificacion=e.Calificacion, Semestre=e.Semestre };
+            formulario.Evaluaciones.Add(x);
+            idEvaluaciones[x] = e.Id;
+        }
+        foreach (var e in experiencias)
+        {
+            var x = new ExperienciaMaestroDto
+            {
+                NombreCargo=e.NombreCargo, Institucion=e.Institucion, Tipo=e.Tipo,
+                FechaInicio=e.FechaInicio, FechaFin=e.FechaFin
+            };
+            formulario.Experiencias.Add(x);
+            idExperiencias[x] = e.Id;
+        }
+        foreach (var e in reconocimientos)
+        {
+            var x = new ReconocimientoMaestroDto
+            {
+                Nombre=e.Nombre, Institucion=e.Institucion, Tipo=e.Tipo,
+                Ambito=e.Ambito, Fecha=e.Fecha
+            };
+            formulario.Reconocimientos.Add(x);
+            idReconocimientos[x] = e.Id;
+        }
+        nuevoEstudio = new();
+        nuevaEvaluacion = new();
+        nuevaExperiencia = new();
+        nuevoReconocimiento = new();
+    }
+    private void SolicitarRetiro(int cedula)
+    {
+        if (!PuedeModificar)
+        {
+            MostrarError("No tienes permiso para modificar docentes.");
+            return;
+        }
+        cedulaPorRetirar = cedula;
+        MostrarError($"Confirme si desea retirar al docente con cédula {cedula}. " +
+            "El retiro depende de las restricciones de la base de datos.");
+    }
+    private void CancelarRetiro()
+    {
+        cedulaPorRetirar = null;
+        LimpiarMensaje();
+    }
+    private async Task RetirarDocente(int cedula)
+    {
+        if (!PuedeModificar)
+        {
+            MostrarError("No tienes permiso para modificar docentes.");
+            return;
+        }
+        if (guardando || cedulaPorRetirar != cedula) return;
+        guardando = true;
+        try
+        {
+            var resultado = await ServicioDocentes.Eliminar(cedula);
+            esError = !resultado.Ok;
+            mensaje = resultado.Mensaje;
+            cedulaPorRetirar = null;
+            if (resultado.Ok)
+            {
+                if (editando && formulario.Docente.Cedula == cedula)
+                {
+                    LimpiarDatos();
+                    pestana = "datos";
+                }
+                await CargarDocentes();
+            }
+        }
+        catch (Exception)
+        {
+            MostrarError("No fue posible retirar el docente.");
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+    private void Limpiar()
+    {
+        if (guardando)
+            return;
+        LimpiarDatos();
+        LimpiarMensaje();
+        pestana = "datos";
+    }
+    private void LimpiarDatos()
+    {
+        idEstudios.Clear(); idEvaluaciones.Clear();
+        idExperiencias.Clear(); idReconocimientos.Clear();
+        estudiosRetirados.Clear(); evaluacionesRetiradas.Clear();
+        experienciasRetiradas.Clear(); reconocimientosRetirados.Clear();
+        editandoEstudio = null; editandoEvaluacion = null;
+        editandoExperiencia = null; editandoReconocimiento = null;
+        formulario = new();
+        editando = false;
+        cedulaPorRetirar = null;
+        nuevoEstudio = new();
+        nuevaEvaluacion = new();
+        nuevaExperiencia = new();
+        nuevoReconocimiento = new();
+    }
+    private void LimpiarMensaje()
+    {
+        esError = false;
+        mensaje = "";
+    }
+    private void MostrarError(string texto)
+    {
+        esError = true;
+        mensaje = texto;
+    }
+}

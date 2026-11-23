@@ -1,6 +1,6 @@
-
 using ApiGestion.Peticiones;
 using ApiGestion.Servicios;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 
@@ -8,6 +8,7 @@ namespace ApiGestion.Controllers;
 
 [ApiController]
 [Route("api/reconocimientos-docentes")]
+[Authorize(Roles = "ADMIN,GESTOR,CONSULTA")]
 public class ReconocimientosDocentesController : ControllerBase
 {
     private readonly IServicioReconocimientoDocente _servicio;
@@ -21,6 +22,7 @@ public class ReconocimientosDocentesController : ControllerBase
         _logger = logger;
     }
 
+    // Los roles ADMIN, GESTOR y CONSULTA pueden consultar.
     [HttpGet]
     public async Task<IActionResult> Listar()
     {
@@ -59,6 +61,8 @@ public class ReconocimientosDocentesController : ControllerBase
         return Ok(registros);
     }
 
+    // Solo ADMIN y GESTOR pueden crear, actualizar y retirar.
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPost]
     public async Task<IActionResult> Crear(
         [FromBody] ReconocimientoDocentePeticion peticion)
@@ -98,6 +102,7 @@ public class ReconocimientosDocentesController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Actualizar(
         int id,
@@ -139,6 +144,7 @@ public class ReconocimientosDocentesController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Eliminar(int id)
     {

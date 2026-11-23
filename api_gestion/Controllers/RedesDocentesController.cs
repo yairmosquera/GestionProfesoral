@@ -1,6 +1,6 @@
-
 using ApiGestion.Peticiones;
 using ApiGestion.Servicios;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 
@@ -8,6 +8,7 @@ namespace ApiGestion.Controllers;
 
 [ApiController]
 [Route("api/redes-docentes")]
+[Authorize(Roles = "ADMIN,GESTOR,CONSULTA")]
 public class RedesDocentesController : ControllerBase
 {
     private readonly IServicioRedDocente _servicio;
@@ -21,6 +22,7 @@ public class RedesDocentesController : ControllerBase
         _logger = logger;
     }
 
+    // Consultas: ADMIN, GESTOR y CONSULTA.
     [HttpGet]
     public async Task<IActionResult> Listar()
     {
@@ -61,6 +63,8 @@ public class RedesDocentesController : ControllerBase
         return Ok(registros);
     }
 
+    // Modificaciones: solamente ADMIN y GESTOR.
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPost]
     public async Task<IActionResult> Crear(
         [FromBody] RedDocentePeticion peticion)
@@ -103,6 +107,7 @@ public class RedesDocentesController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPut("{red:int}/{docente:int}")]
     public async Task<IActionResult> Actualizar(
         int red,
@@ -160,6 +165,7 @@ public class RedesDocentesController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpDelete("{red:int}/{docente:int}")]
     public async Task<IActionResult> Eliminar(
         int red, int docente)

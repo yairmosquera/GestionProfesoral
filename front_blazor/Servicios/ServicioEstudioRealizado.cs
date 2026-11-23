@@ -1,4 +1,5 @@
-
+using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -23,72 +24,107 @@ public class EstudioRealizadoDto
 public class ServicioEstudioRealizado
 {
     private readonly HttpClient _http;
+    private readonly ServicioSesionJwt _sesion;
 
-    public ServicioEstudioRealizado(HttpClient http)
+    public ServicioEstudioRealizado(HttpClient http, ServicioSesionJwt sesion)
     {
         _http = http;
+        _sesion = sesion;
     }
 
-    public async Task<List<EstudioRealizadoDto>> Listar()
+    private HttpRequestMessage PrepararSolicitud(HttpMethod metodo, string ruta)
     {
-        return await _http
-            .GetFromJsonAsync<List<EstudioRealizadoDto>>(
-                "/api/estudios-realizados"
-            ) ?? new();
+        if (!_sesion.Autenticado || string.IsNullOrWhiteSpace(_sesion.Token))
+            throw new UnauthorizedAccessException(
+                "No se encontró una sesión JWT activa en el circuito de Blazor. " +
+                "Verifica que ServicioSesionJwt esté registrado como Scoped en Program.cs.");
+
+        var solicitud = new HttpRequestMessage(metodo, ruta);
+        solicitud.Headers.Authorization =
+            new AuthenticationHeaderValue("Bearer", _sesion.Token);
+        return solicitud;
     }
 
-    public async Task<List<EstudioRealizadoDto>> PorDocente(
-        int cedula)
+    private async Task<List<EstudioRealizadoDto>> ConsultarAsync(string ruta)
     {
-        return await _http
-            .GetFromJsonAsync<List<EstudioRealizadoDto>>(
-                $"/api/estudios-realizados/docente/{cedula}"
-            ) ?? new();
+        using var solicitud = PrepararSolicitud(HttpMethod.Get, ruta);
+        using var respuesta = await _http.SendAsync(solicitud);
+
+        if (respuesta.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException(
+                "La API devolvió 401 aunque se envió el token JWT. " +
+                "Comprueba la validación JWT de la API, las credenciales y que estés usando " +
+                "la misma configuración de firma (JWT_SECRET, JWT_ISSUER y JWT_AUDIENCE). " +
+                "No se requiere autorizar otra vez en Swagger.");
+
+        if (respuesta.StatusCode == HttpStatusCode.Forbidden)
+            throw new UnauthorizedAccessException(
+                "No tienes permiso para consultar los estudios.");
+
+        respuesta.EnsureSuccessStatusCode();
+        return await respuesta.Content
+            .ReadFromJsonAsync<List<EstudioRealizadoDto>>() ?? new();
     }
+
+    public Task<List<EstudioRealizadoDto>> Listar()
+        => ConsultarAsync("/api/estudios-realizados");
+
+    public Task<List<EstudioRealizadoDto>> PorDocente(int cedula)
+        => ConsultarAsync($"/api/estudios-realizados/docente/{cedula}");
 
     public async Task<(bool Ok, string Mensaje)> Guardar(
-        EstudioRealizadoDto estudio,
-        bool editando)
+        EstudioRealizadoDto estudio, bool editando)
     {
-        HttpResponseMessage respuesta;
+        if (!_sesion.Autenticado)
+            return (false, "Debes iniciar sesión para guardar estudios.");
+
+        if (!_sesion.TieneRol("ADMIN", "GESTOR"))
+            return (false, "No tienes permiso para modificar estudios.");
+
+        var ruta = editando
+            ? $"/api/estudios-realizados/{estudio.Id}"
+            : "/api/estudios-realizados";
+
+        using var solicitud = PrepararSolicitud(
+            editando ? HttpMethod.Put : HttpMethod.Post, ruta);
 
         if (editando)
         {
-            respuesta = await _http.PutAsJsonAsync(
-                $"/api/estudios-realizados/{estudio.Id}",
-                estudio);
+            solicitud.Content = JsonContent.Create(estudio);
         }
         else
         {
-            // La creación no envía el ID.
-            respuesta = await _http.PostAsJsonAsync(
-                "/api/estudios-realizados",
-                new
-                {
-                    estudio.Titulo,
-                    estudio.Universidad,
-                    estudio.Fecha,
-                    estudio.Tipo,
-                    estudio.Ciudad,
-                    estudio.Docente,
-                    estudio.InsAcreditada,
-                    estudio.Metodologia,
-                    estudio.PerfilEgresado,
-                    estudio.Pais
-                });
+            // Mantener el contrato de creación sin Id.
+            solicitud.Content = JsonContent.Create(new
+            {
+                estudio.Titulo,
+                estudio.Universidad,
+                estudio.Fecha,
+                estudio.Tipo,
+                estudio.Ciudad,
+                estudio.Docente,
+                estudio.InsAcreditada,
+                estudio.Metodologia,
+                estudio.PerfilEgresado,
+                estudio.Pais
+            });
         }
 
-        using (respuesta)
-        {
-            return await ProcesarRespuesta(respuesta);
-        }
+        using var respuesta = await _http.SendAsync(solicitud);
+        return await ProcesarRespuesta(respuesta);
     }
 
-    public async Task<(bool Ok, string Mensaje)> Eliminar(
-        int id)
+    public async Task<(bool Ok, string Mensaje)> Eliminar(int id)
     {
-        using var respuesta = await _http.DeleteAsync(
-            $"/api/estudios-realizados/{id}");
+        if (!_sesion.Autenticado)
+            return (false, "Debes iniciar sesión para retirar estudios.");
+
+        if (!_sesion.TieneRol("ADMIN", "GESTOR"))
+            return (false, "No tienes permiso para retirar estudios.");
+
+        using var solicitud = PrepararSolicitud(
+            HttpMethod.Delete, $"/api/estudios-realizados/{id}");
+        using var respuesta = await _http.SendAsync(solicitud);
 
         return await ProcesarRespuesta(respuesta);
     }
@@ -97,44 +133,32 @@ public class ServicioEstudioRealizado
         ProcesarRespuesta(HttpResponseMessage respuesta)
     {
         if (respuesta.IsSuccessStatusCode)
-        {
             return (true, "Operación realizada correctamente.");
-        }
+
+        if (respuesta.StatusCode == HttpStatusCode.Unauthorized)
+            return (false, "La API devolvió 401 pese a enviar el JWT. " +
+                "Revisa su validación y la configuración de autenticación.");
+
+        if (respuesta.StatusCode == HttpStatusCode.Forbidden)
+            return (false, "No tienes permisos para esta operación.");
 
         try
         {
-            var contenido =
-                await respuesta.Content.ReadAsStringAsync();
-
+            var contenido = await respuesta.Content.ReadAsStringAsync();
             using var json = JsonDocument.Parse(contenido);
 
-            if (json.RootElement.TryGetProperty(
-                "mensaje", out var mensaje))
-            {
-                return (
-                    false,
-                    mensaje.GetString()
-                        ?? "No fue posible completar la operación."
-                );
-            }
+            if (json.RootElement.TryGetProperty("mensaje", out var mensaje))
+                return (false, mensaje.GetString()
+                    ?? "No fue posible completar la operación.");
 
-            if (json.RootElement.TryGetProperty(
-                "errors", out var errores))
-            {
-                return (
-                    false,
-                    "Revisa los datos obligatorios del formulario."
-                );
-            }
+            if (json.RootElement.TryGetProperty("errors", out _))
+                return (false, "Revisa los datos obligatorios del formulario.");
         }
         catch (JsonException)
         {
-            // La respuesta puede tener otro formato.
+            // La API puede devolver un error sin JSON.
         }
 
-        return (
-            false,
-            "No fue posible completar la operación."
-        );
+        return (false, "No fue posible completar la operación.");
     }
 }

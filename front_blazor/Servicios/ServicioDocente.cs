@@ -1,10 +1,11 @@
-
+using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 
 namespace FrontGestion.Servicios;
 
-// Modelo que utiliza el frontend
+// Modelo utilizado por el frontend (sin cambios).
 public class DocenteDto
 {
     public int Cedula { get; set; }
@@ -25,81 +26,116 @@ public class DocenteDto
     public bool Activo { get; set; } = true;
 }
 
-// Servicio para consumir la API
 public class ServicioDocente
 {
     private readonly HttpClient _http;
+    private readonly ServicioSesionJwt _sesion;
 
-    public ServicioDocente(HttpClient http)
+    public ServicioDocente(HttpClient http, ServicioSesionJwt sesion)
     {
         _http = http;
+        _sesion = sesion;
     }
 
-    // Listar docentes
+    // Cada solicitud usa el token del usuario del circuito actual.
+    // No utilizamos DefaultRequestHeaders para no mezclar sesiones.
+    private HttpRequestMessage NuevaSolicitud(HttpMethod metodo, string ruta)
+    {
+        if (!_sesion.Autenticado || string.IsNullOrWhiteSpace(_sesion.Token))
+        {
+            throw new UnauthorizedAccessException(
+                "Inicia sesión para consultar la información de docentes.");
+        }
+
+        var solicitud = new HttpRequestMessage(metodo, ruta);
+        solicitud.Headers.Authorization =
+            new AuthenticationHeaderValue("Bearer", _sesion.Token);
+
+        return solicitud;
+    }
+
+    // Listar docentes.
     public async Task<List<DocenteDto>> Listar()
     {
-        return await _http.GetFromJsonAsync<List<DocenteDto>>(
-            "/api/docentes") ?? new();
+        using var solicitud = NuevaSolicitud(HttpMethod.Get, "/api/docentes");
+        using var respuesta = await _http.SendAsync(solicitud);
+
+        if (respuesta.StatusCode == HttpStatusCode.Unauthorized)
+            throw new UnauthorizedAccessException(
+                "La sesión no es válida o ha expirado. Inicia sesión nuevamente.");
+
+        if (respuesta.StatusCode == HttpStatusCode.Forbidden)
+            throw new UnauthorizedAccessException(
+                "Tu usuario no tiene permiso para consultar docentes.");
+
+        respuesta.EnsureSuccessStatusCode();
+
+        return await respuesta.Content.ReadFromJsonAsync<List<DocenteDto>>()
+            ?? new List<DocenteDto>();
     }
 
-    // Crear o actualizar
+    // Crear o actualizar.
     public async Task<(bool Ok, string Mensaje)> Guardar(
         DocenteDto docente, bool editando)
     {
-        using var respuesta = editando
-            ? await _http.PutAsJsonAsync(
-                $"/api/docentes/{docente.Cedula}", docente)
-            : await _http.PostAsJsonAsync(
-                "/api/docentes", docente);
+        if (!_sesion.TieneRol("ADMIN", "GESTOR"))
+            return (false, "No tienes permiso para modificar docentes.");
 
+        var ruta = editando
+            ? $"/api/docentes/{docente.Cedula}"
+            : "/api/docentes";
+
+        using var solicitud = NuevaSolicitud(
+            editando ? HttpMethod.Put : HttpMethod.Post, ruta);
+
+        solicitud.Content = JsonContent.Create(docente);
+
+        using var respuesta = await _http.SendAsync(solicitud);
         return await ProcesarRespuesta(respuesta);
     }
 
-    // Eliminar docente
-    public async Task<(bool Ok, string Mensaje)> Eliminar(
-        int cedula)
+    // Retirar docente.
+    public async Task<(bool Ok, string Mensaje)> Eliminar(int cedula)
     {
-        using var respuesta = await _http.DeleteAsync(
-            $"/api/docentes/{cedula}");
+        if (!_sesion.TieneRol("ADMIN", "GESTOR"))
+            return (false, "No tienes permiso para retirar docentes.");
 
+        using var solicitud = NuevaSolicitud(
+            HttpMethod.Delete, $"/api/docentes/{cedula}");
+
+        using var respuesta = await _http.SendAsync(solicitud);
         return await ProcesarRespuesta(respuesta);
     }
 
-    // Procesar respuesta de la API
     private static async Task<(bool Ok, string Mensaje)>
         ProcesarRespuesta(HttpResponseMessage respuesta)
     {
         if (respuesta.IsSuccessStatusCode)
-        {
-            return (
-                true,
-                "Operación realizada correctamente."
-            );
-        }
+            return (true, "Operación realizada correctamente.");
+
+        if (respuesta.StatusCode == HttpStatusCode.Unauthorized)
+            return (false, "Tu sesión expiró. Inicia sesión nuevamente.");
+
+        if (respuesta.StatusCode == HttpStatusCode.Forbidden)
+            return (false, "No tienes permisos para esta operación.");
 
         try
         {
             using var json = JsonDocument.Parse(
                 await respuesta.Content.ReadAsStringAsync());
 
-            if (json.RootElement.TryGetProperty(
-                "mensaje", out var mensaje))
+            if (json.RootElement.TryGetProperty("mensaje", out var mensaje))
             {
-                return (
-                    false,
-                    mensaje.GetString()
-                    ?? "No se pudo completar la operación."
-                );
+                return (false, mensaje.GetString()
+                    ?? "No se pudo completar la operación.");
             }
         }
         catch (JsonException)
         {
-            // Manejar otros formatos de error
+            // Respuesta sin cuerpo JSON.
         }
 
-        return (
-            false,
-            "No se pudo completar la operación. Revise los datos."
-        );
+        return (false,
+            "No se pudo completar la operación. Revisa los datos.");
     }
 }

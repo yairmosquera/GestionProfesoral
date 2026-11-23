@@ -1,6 +1,7 @@
 using ApiGestion.Excepciones;
 using ApiGestion.Peticiones;
 using ApiGestion.Servicios;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ApiGestion.Controllers;
@@ -10,6 +11,7 @@ namespace ApiGestion.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/programas")]
+[Authorize(Roles = "ADMIN,GESTOR,CONSULTA")]
 public class ProgramaController : ControllerBase
 {
     private readonly IServicioPrograma _servicio;
@@ -51,6 +53,7 @@ public class ProgramaController : ControllerBase
     /// <summary>
     /// Crea un nuevo programa.
     /// </summary>
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPost]
     public async Task<IActionResult> Crear(
         [FromBody] ProgramaCrear peticion)
@@ -67,6 +70,7 @@ public class ProgramaController : ControllerBase
     /// <summary>
     /// Reemplaza completamente un programa.
     /// </summary>
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Reemplazar(
         int id,
@@ -74,10 +78,7 @@ public class ProgramaController : ControllerBase
     {
         try
         {
-            var programa = await _servicio.ReemplazarAsync(
-                id,
-                peticion
-            );
+            var programa = await _servicio.ReemplazarAsync(id, peticion);
 
             return Ok(programa);
         }
@@ -90,6 +91,7 @@ public class ProgramaController : ControllerBase
     /// <summary>
     /// Actualiza parcialmente un programa.
     /// </summary>
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPatch("{id:int}")]
     public async Task<IActionResult> Actualizar(
         int id,
@@ -97,10 +99,7 @@ public class ProgramaController : ControllerBase
     {
         try
         {
-            var programa = await _servicio.ActualizarAsync(
-                id,
-                peticion
-            );
+            var programa = await _servicio.ActualizarAsync(id, peticion);
 
             return Ok(programa);
         }
@@ -113,6 +112,7 @@ public class ProgramaController : ControllerBase
     /// <summary>
     /// Realiza el borrado lógico de un programa.
     /// </summary>
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Eliminar(int id)
     {

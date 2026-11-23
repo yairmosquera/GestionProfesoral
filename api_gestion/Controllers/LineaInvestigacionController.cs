@@ -1,6 +1,7 @@
 using ApiGestion.Excepciones;
 using ApiGestion.Peticiones;
 using ApiGestion.Servicios;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ApiGestion.Controllers;
@@ -10,6 +11,7 @@ namespace ApiGestion.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/lineas-investigacion")]
+[Authorize(Roles = "ADMIN,GESTOR,CONSULTA")]
 public class LineaInvestigacionController : ControllerBase
 {
     private readonly IServicioLineaInvestigacion _servicio;
@@ -20,6 +22,7 @@ public class LineaInvestigacionController : ControllerBase
         _servicio = servicio;
     }
 
+    // ADMIN, GESTOR y CONSULTA pueden leer.
     [HttpGet]
     public async Task<IActionResult> ObtenerTodos()
     {
@@ -43,6 +46,8 @@ public class LineaInvestigacionController : ControllerBase
         }
     }
 
+    // Solo ADMIN y GESTOR pueden modificar.
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPost]
     public async Task<IActionResult> Crear(
         [FromBody] LineaInvestigacionCrear peticion)
@@ -56,6 +61,7 @@ public class LineaInvestigacionController : ControllerBase
         );
     }
 
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Reemplazar(
         int id,
@@ -76,6 +82,7 @@ public class LineaInvestigacionController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPatch("{id:int}")]
     public async Task<IActionResult> Actualizar(
         int id,
@@ -96,6 +103,7 @@ public class LineaInvestigacionController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Eliminar(int id)
     {

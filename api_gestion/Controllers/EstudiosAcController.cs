@@ -1,5 +1,6 @@
 using ApiGestion.Peticiones;
 using ApiGestion.Servicios;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 
@@ -7,6 +8,7 @@ namespace ApiGestion.Controllers;
 
 [ApiController]
 [Route("api/estudios-ac")]
+[Authorize(Roles = "ADMIN,GESTOR,CONSULTA")]
 public class EstudiosAcController : ControllerBase
 {
     private readonly IServicioEstudioAc _servicio;
@@ -16,6 +18,7 @@ public class EstudiosAcController : ControllerBase
         _servicio = servicio;
     }
 
+    // Consultas permitidas para ADMIN, GESTOR y CONSULTA.
     [HttpGet]
     public async Task<IActionResult> Listar()
         => Ok(await _servicio.Listar());
@@ -33,6 +36,8 @@ public class EstudiosAcController : ControllerBase
     public async Task<IActionResult> AreasPorEstudio(int estudio)
         => Ok(await _servicio.AreasPorEstudio(estudio));
 
+    // Modificaciones permitidas únicamente para ADMIN y GESTOR.
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPost]
     public async Task<IActionResult> Crear([FromBody] EstudioAcPeticion peticion)
     {
@@ -56,6 +61,7 @@ public class EstudiosAcController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpPut("{estudio:int}/{areaConocimiento}")]
     public async Task<IActionResult> Actualizar(
         int estudio,
@@ -76,6 +82,7 @@ public class EstudiosAcController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "ADMIN,GESTOR")]
     [HttpDelete("{estudio:int}/{areaConocimiento}")]
     public async Task<IActionResult> Eliminar(int estudio, string areaConocimiento)
     {
