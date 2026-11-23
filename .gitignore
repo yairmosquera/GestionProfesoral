@@ -14,3 +14,6 @@
 # Archivos del sistema
 .DS_Store
 Thumbs.db
+api_gestion/appsettings.Production.json
+publicado/
+publicado_pg/
